@@ -142,6 +142,19 @@
                 </div>
 
                 <div id="loginAlert" class="alert" hidden></div>
+
+                <div id="sessionBox" class="alert" hidden>
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                    <div>
+                      <div style="font-weight:900;">جلسة محفوظة</div>
+                      <div class="muted" id="sessionLabel">—</div>
+                    </div>
+                    <div class="row">
+                      <button class="btn btn--primary" id="btnContinue" type="button">متابعة</button>
+                      <button class="btn btn--ghost" id="btnClearSession" type="button">تسجيل خروج</button>
+                    </div>
+                  </div>
+                </div>
               </form>
 
               <div class="hr"></div>
@@ -443,6 +456,9 @@
   </div>
 
   <div class="toast" id="toast" hidden></div>
+
+  <!-- ZXing loader (fallback scanner engine) -->
+  <script src="./zxing-browser.min.js" defer></script>
 
   <!-- App logic -->
   <script src="./app.js" defer></script>

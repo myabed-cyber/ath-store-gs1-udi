@@ -59,6 +59,7 @@
       state.me = null;
       localStorage.removeItem('gs1hub.token');
       localStorage.removeItem('gs1hub.me');
+      updateSessionBox();
     }
   }
 
@@ -81,7 +82,16 @@ async function boot() {
     $('#envHint').textContent = `API=${state.apiBase || '(same-origin)'} • build=${BUILD}`;
     await hydrateAuth();
     applyRBACNav();
+    updateSessionBox();
     bindAuth();
+
+    // Start from login screen for presentation/demo clarity.
+    // (If a valid session exists, the login screen will show a "متابعة" button.)
+    const initial = (location.hash.replace('#/', '') || '').trim().toLowerCase();
+    if (initial && initial !== 'login') {
+      location.hash = '#/login';
+    }
+
     bindOperator();
     bindAdmin();
     bindDocs();
@@ -95,7 +105,7 @@ async function boot() {
 
   function navigate() {
     const page = (location.hash.replace('#/', '') || '').trim();
-    const target = page || (state.token ? defaultRoute() : 'login');
+    const target = page || 'login';
 
     // Leaving operator? stop camera.
     const current = $$('.page').find(p => !p.hidden)?.dataset?.page;
@@ -131,6 +141,7 @@ async function boot() {
   function showLogin() {
     showPage('login');
     $('#btnLogout').hidden = true;
+    updateSessionBox();
   }
 
   function showUnauth() {
@@ -185,8 +196,51 @@ async function boot() {
     return `${user} • ${role}`;
   }
 
+  function updateSessionBox() {
+    const box = $('#sessionBox');
+    const label = $('#sessionLabel');
+    const btnC = $('#btnContinue');
+    const btnX = $('#btnClearSession');
+    if (!box || !label) return;
+
+    const role = (state.me && state.me.role) || '';
+    const user = (state.me && state.me.username) || '';
+    const hasSession = !!(state.token && role && user);
+
+    if (!hasSession) {
+      box.hidden = true;
+      return;
+    }
+
+    label.textContent = `${user} • ${role}`;
+    box.hidden = false;
+
+    // Safety: if buttons exist but weren't bound yet, keep them enabled
+    if (btnC) btnC.disabled = false;
+    if (btnX) btnX.disabled = false;
+  }
+
+
   function bindAuth() {
     $('#btnGoLogin')?.addEventListener('click', () => (location.hash = '#/login'));
+
+
+    $('#btnContinue')?.addEventListener('click', () => {
+      // Continue with existing valid session
+      location.hash = '#/' + defaultRoute();
+    });
+
+    $('#btnClearSession')?.addEventListener('click', () => {
+      stopScan('clear-session');
+      state.token = '';
+      state.me = null;
+      localStorage.removeItem('gs1hub.token');
+      localStorage.removeItem('gs1hub.me');
+      applyRBACNav();
+      updateSessionBox();
+      try { document.body.dataset.auth = '0'; } catch {}
+      location.hash = '#/login';
+    });
 
     $('#btnLogout')?.addEventListener('click', () => {
       stopScan('logout');
@@ -195,6 +249,7 @@ async function boot() {
       localStorage.removeItem('gs1hub.token');
       localStorage.removeItem('gs1hub.me');
       applyRBACNav();
+      updateSessionBox();
       try { document.body.dataset.auth = '0'; } catch {}
       location.hash = '#/login';
     });
@@ -231,6 +286,7 @@ async function boot() {
 
         toast('تم تسجيل الدخول', 'ok');
         applyRBACNav();
+        updateSessionBox();
         location.hash = '#/' + defaultRoute();
       } catch (e) {
         setAlert('#loginAlert', e.message || String(e), 'bad');
