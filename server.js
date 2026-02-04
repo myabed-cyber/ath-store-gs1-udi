@@ -329,7 +329,7 @@ async function seed() {
   }
 
   // Ensure seed metadata table exists (so we can make seeding idempotent and controllable).
-  await pool.query(`
+  await q(`
     CREATE TABLE IF NOT EXISTS seed_meta (
       id INT PRIMARY KEY DEFAULT 1,
       seed_version TEXT NOT NULL,
@@ -352,7 +352,7 @@ async function seed() {
     )
     .digest("hex");
 
-  const metaRes = await pool.query("SELECT seed_version, seed_hash, applied_at FROM seed_meta WHERE id=1");
+  const metaRes = await q("SELECT seed_version, seed_hash, applied_at FROM seed_meta WHERE id=1");
   const meta = metaRes.rows[0];
 
   // Decide whether to run seed:
@@ -385,11 +385,11 @@ async function seed() {
 
   if (mode === "reset") {
     // WARNING: destructive. Use only in dev / controlled environments.
-    await pool.query("DELETE FROM users");
+    await q("DELETE FROM users");
   }
 
   // Upsert users (safe + repeatable).
-  await pool.query(
+  await q(
     `
     INSERT INTO users (id, username, password_hash, role, is_active)
     VALUES (gen_random_uuid(), $1, $2, $3, true)
@@ -401,7 +401,7 @@ async function seed() {
     [adminUser, adminHash, "admin"]
   );
 
-  await pool.query(
+  await q(
     `
     INSERT INTO users (id, username, password_hash, role, is_active)
     VALUES (gen_random_uuid(), $1, $2, $3, true)
@@ -414,7 +414,7 @@ async function seed() {
   );
 
   // Record seed application.
-  await pool.query(
+  await q(
     `
     INSERT INTO seed_meta (id, seed_version, seed_hash, applied_at)
     VALUES (1, $1, $2, NOW())

@@ -330,7 +330,7 @@ async function seed() {
 
     // Legacy behavior: only seed if users table is empty
     if (SEED_MODE === "once") {
-      const { rows } = await pool.query("SELECT COUNT(*)::int AS c FROM users");
+      const { rows } = await q("SELECT COUNT(*)::int AS c FROM users");
       if (rows?.[0]?.c > 0) {
         console.log("[SEED] Skipped (SEED_MODE=once and users already exist).");
         return;
@@ -342,7 +342,7 @@ async function seed() {
     const upsertUser = async (username, plainPass, role) => {
       if (!username || !plainPass) return;
       const hash = bcrypt.hashSync(plainPass, 10);
-      await pool.query(
+      await q(
         `INSERT INTO users (id, username, password_hash, role)
          VALUES ($1, $2, $3, $4)
          ON CONFLICT (username)
