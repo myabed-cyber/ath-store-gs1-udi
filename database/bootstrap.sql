@@ -12,6 +12,15 @@ CREATE TABLE IF NOT EXISTS users (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Tracks when seed values were applied (for idempotent seeding)
+CREATE TABLE IF NOT EXISTS seed_meta (
+  id int PRIMARY KEY DEFAULT 1,
+  seed_version text NOT NULL,
+  seed_hash text NOT NULL,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+
+
 CREATE TABLE IF NOT EXISTS policies (
   id uuid PRIMARY KEY,
   name text NOT NULL,

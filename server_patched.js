@@ -303,131 +303,64 @@ $$;
 }
 
 async function seed() {
-  const mode = String(process.env.SEED_MODE || "once").toLowerCase(); // once | upsert | reset | off
-  if (mode === "off") {
-    console.log("[SEED] SEED_MODE=off -> skip");
-    return;
+  try {
+    if (!pool) return;
+
+    // In production, seeding is OFF by default for safety.
+    // Enable explicitly by setting SEED_MODE=once or SEED_MODE=upsert.
+    if (SEED_MODE === "off") {
+      console.log("[SEED] Skipped (SEED_MODE=off).");
+      return;
+    }
+
+    // Ensure schema first (defensive; harmless if already called)
+    // await ensureSchema();
+
+    const adminUser = SEED_ADMIN_USER;
+    const adminPass = SEED_ADMIN_PASS;
+    const operatorUser = SEED_OPERATOR_USER;
+    const operatorPass = SEED_OPERATOR_PASS;
+
+    if (!adminUser || !adminPass) {
+      console.warn("[SEED] Missing SEED_ADMIN_USER or SEED_ADMIN_PASS. Skipping admin seed.");
+    }
+    if (!operatorUser || !operatorPass) {
+      console.warn("[SEED] Missing SEED_OPERATOR_USER or SEED_OPERATOR_PASS. Skipping operator seed.");
+    }
+
+    // Legacy behavior: only seed if users table is empty
+    if (SEED_MODE === "once") {
+      const { rows } = await pool.query("SELECT COUNT(*)::int AS c FROM users");
+      if (rows?.[0]?.c > 0) {
+        console.log("[SEED] Skipped (SEED_MODE=once and users already exist).");
+        return;
+      }
+    }
+
+    // Upsert behavior: update password/role for the same usernames.
+    // This solves the common issue where the service runs once before SEED_* are set.
+    const upsertUser = async (username, plainPass, role) => {
+      if (!username || !plainPass) return;
+      const hash = bcrypt.hashSync(plainPass, 10);
+      await pool.query(
+        `INSERT INTO users (id, username, password_hash, role)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (username)
+         DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role`,
+        [uuid(), username, hash, role]
+      );
+    };
+
+    await upsertUser(adminUser, adminPass, "admin");
+    await upsertUser(operatorUser, operatorPass, "operator");
+
+    console.log(`[SEED] Done (SEED_MODE=${SEED_MODE}).`);
+  } catch (e) {
+    console.warn("[SEED] failed:", e?.message || e);
   }
-
-  const strict = String(process.env.SEED_STRICT_BOOTSTRAP || "").toLowerCase() === "true";
-  const force = String(process.env.SEED_FORCE || "").toLowerCase() === "true";
-  const seedVersion = String(process.env.SEED_VERSION || "1");
-
-  const adminUser = process.env.SEED_ADMIN_USER || "admin";
-  const adminPass = process.env.SEED_ADMIN_PASS;
-  const operatorUser = process.env.SEED_OPERATOR_USER || "testuser";
-  const operatorPass = process.env.SEED_OPERATOR_PASS;
-
-  if (!adminPass || !operatorPass) {
-    const msg =
-      "[SEED] Missing SEED_ADMIN_PASS or SEED_OPERATOR_PASS. " +
-      "Set them in Northflank Secrets. " +
-      (strict ? "SEED_STRICT_BOOTSTRAP=true -> refusing to start." : "Skipping seed for now.");
-    if (strict) throw new Error(msg);
-    console.warn(msg);
-    return;
-  }
-
-  // Ensure seed metadata table exists (so we can make seeding idempotent and controllable).
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS seed_meta (
-      id INT PRIMARY KEY DEFAULT 1,
-      seed_version TEXT NOT NULL,
-      seed_hash TEXT NOT NULL,
-      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-  `);
-
-  // Hash includes the seed inputs, so changing SEED_* values can trigger a re-seed in upsert/reset modes.
-  const seedHash = crypto
-    .createHash("sha256")
-    .update(
-      JSON.stringify({
-        adminUser,
-        adminPass,
-        operatorUser,
-        operatorPass,
-        seedVersion,
-      })
-    )
-    .digest("hex");
-
-  const metaRes = await pool.query("SELECT seed_version, seed_hash, applied_at FROM seed_meta WHERE id=1");
-  const meta = metaRes.rows[0];
-
-  // Decide whether to run seed:
-  // - first time (no meta row): run
-  // - SEED_FORCE=true: run
-  // - version changed: run (any mode except off)
-  // - hash changed: run only for upsert/reset
-  let shouldRun = force || !meta;
-
-  if (!shouldRun && meta) {
-    if (meta.seed_version !== seedVersion) shouldRun = true;
-    else if (meta.seed_hash !== seedHash && (mode === "upsert" || mode === "reset")) shouldRun = true;
-  }
-
-  // In "once" mode, never re-run once meta exists (even if values change).
-  if (mode === "once" && meta && !force) {
-    shouldRun = false;
-  }
-
-  if (!shouldRun) {
-    console.log(`[SEED] Up-to-date (mode=${mode}, version=${meta?.seed_version}) -> skip`);
-    return;
-  }
-
-  console.log(`[SEED] Running seed (mode=${mode}, version=${seedVersion}, force=${force})...`);
-
-  const adminHash = bcrypt.hashSync(String(adminPass), 10);
-  const operatorHash = bcrypt.hashSync(String(operatorPass), 10);
-
-
-  if (mode === "reset") {
-    // WARNING: destructive. Use only in dev / controlled environments.
-    await pool.query("DELETE FROM users");
-  }
-
-  // Upsert users (safe + repeatable).
-  await pool.query(
-    `
-    INSERT INTO users (id, username, password_hash, role, is_active)
-    VALUES (gen_random_uuid(), $1, $2, $3, true)
-    ON CONFLICT (username) DO UPDATE
-      SET password_hash = EXCLUDED.password_hash,
-          role = EXCLUDED.role,
-          is_active = true
-    `,
-    [adminUser, adminHash, "admin"]
-  );
-
-  await pool.query(
-    `
-    INSERT INTO users (id, username, password_hash, role, is_active)
-    VALUES (gen_random_uuid(), $1, $2, $3, true)
-    ON CONFLICT (username) DO UPDATE
-      SET password_hash = EXCLUDED.password_hash,
-          role = EXCLUDED.role,
-          is_active = true
-    `,
-    [operatorUser, operatorHash, "operator"]
-  );
-
-  // Record seed application.
-  await pool.query(
-    `
-    INSERT INTO seed_meta (id, seed_version, seed_hash, applied_at)
-    VALUES (1, $1, $2, NOW())
-    ON CONFLICT (id) DO UPDATE
-      SET seed_version = EXCLUDED.seed_version,
-          seed_hash = EXCLUDED.seed_hash,
-          applied_at = NOW()
-    `,
-    [seedVersion, seedHash]
-  );
-
-  console.log("[SEED] Done.");
 }
+
+
 // ---------------- Auth ----------------
 function signToken(user) {
   return jwt.sign({ sub: user.id, username: user.username, role: user.role }, JWT_SECRET_EFFECTIVE, { expiresIn: "8h" });
