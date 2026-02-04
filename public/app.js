@@ -8,7 +8,7 @@
        3) same-origin default
 */
 (() => {
-  const BUILD = 'v4';
+  const BUILD = 'pro-ui-2026-02-04';
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -44,8 +44,43 @@
     unauth: showUnauth,
   };
 
-  function boot() {
+  
+  async function hydrateAuth() {
+    if (!state.token) return;
+    try {
+      const r = await apiGet('/api/auth/me');
+      if (r && r.user) {
+        state.me = r.user;
+        localStorage.setItem('gs1hub.me', JSON.stringify(state.me || {}));
+      }
+    } catch (e) {
+      // Token invalid/expired → logout safely
+      state.token = '';
+      state.me = null;
+      localStorage.removeItem('gs1hub.token');
+      localStorage.removeItem('gs1hub.me');
+    }
+  }
+
+  function applyRBACNav() {
+    const role = (state.me && state.me.role) || '';
+    const adminLink = $$('[data-nav="admin"]')[0];
+    if (adminLink) {
+      const canSee = ['admin','auditor'].includes(role);
+      adminLink.style.display = canSee ? '' : 'none';
+    }
+  }
+
+  function defaultRoute() {
+    const role = (state.me && state.me.role) || '';
+    if (['admin','auditor'].includes(role)) return 'admin';
+    return 'operator';
+  }
+
+async function boot() {
     $('#envHint').textContent = `API=${state.apiBase || '(same-origin)'} • build=${BUILD}`;
+    await hydrateAuth();
+    applyRBACNav();
     bindAuth();
     bindOperator();
     bindAdmin();
@@ -60,7 +95,7 @@
 
   function navigate() {
     const page = (location.hash.replace('#/', '') || '').trim();
-    const target = page || (state.token ? 'operator' : 'login');
+    const target = page || (state.token ? defaultRoute() : 'login');
 
     // Leaving operator? stop camera.
     const current = $$('.page').find(p => !p.hidden)?.dataset?.page;
@@ -73,6 +108,19 @@
 
   function showPage(name) {
     $$('.page').forEach(p => (p.hidden = p.dataset.page !== name));
+    try { document.body.dataset.page = name; } catch {}
+    try { document.body.dataset.auth = state.token ? '1' : '0'; } catch {}
+    const crumb = $('#pageCrumb');
+    if (crumb) {
+      const map = {
+        login: 'Sign in',
+        operator: 'Operator Console',
+        admin: 'Admin Console',
+        docs: 'Docs',
+        unauth: 'Access denied',
+      };
+      crumb.textContent = map[name] || 'GS1/UDI Enterprise Hub';
+    }
   }
 
   function setActiveNav(name) {
@@ -102,6 +150,15 @@
   function showAdmin() {
     showPage('admin');
     $('#btnLogout').hidden = false;
+
+    // If auditor (read-only), disable user creation controls
+    const role = (state.me && state.me.role) || '';
+    const canCreateUsers = role === 'admin';
+    ['newUser','newPass','newRole','btnCreateUser'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = !canCreateUsers;
+    });
+
     refreshDashboard().catch(() => {});
     refreshCases().catch(() => {});
     refreshUsers().catch(() => {});
@@ -137,6 +194,8 @@
       state.me = null;
       localStorage.removeItem('gs1hub.token');
       localStorage.removeItem('gs1hub.me');
+      applyRBACNav();
+      try { document.body.dataset.auth = '0'; } catch {}
       location.hash = '#/login';
     });
 
@@ -171,7 +230,8 @@
         localStorage.setItem('gs1hub.me', JSON.stringify(state.me || {}));
 
         toast('تم تسجيل الدخول', 'ok');
-        location.hash = '#/operator';
+        applyRBACNav();
+        location.hash = '#/' + defaultRoute();
       } catch (e) {
         setAlert('#loginAlert', e.message || String(e), 'bad');
       } finally {
@@ -578,7 +638,11 @@
       host.appendChild(box);
     }
 
-    const list = $('#warnList');
+    let list = $('#warnList');
+    if (!list) {
+      box.innerHTML = '<div style="font-weight:900;margin-bottom:6px;">أسباب التحذير</div><ul id="warnList" style="margin:0;padding:0 18px;"></ul>';
+      list = $('#warnList');
+    }
     const reasons = [];
 
     // Prefer backend reasons if present on lastScan
@@ -710,27 +774,62 @@
 
   async function refreshUsers() {
     const r = await apiGet('/api/users');
-    const body = $('#usersBody');
+    const host = $('#usersList') || $('#usersBody');
+    if (!host) return;
+
     if (!Array.isArray(r) || !r.length) {
-      body.innerHTML = '<div class="muted">لا يوجد مستخدمين.</div>';
+      host.innerHTML = '<div class="muted">لا يوجد مستخدمين.</div>';
       return;
     }
-    body.innerHTML = r.map(u => `
-      <div class="list__item">
-        <div class="mono">${escapeHtml(u.username || '')}</div>
-        <div>${escapeHtml(u.role || '')}</div>
-        <div class="mono" style="opacity:.75">${escapeHtml(u.created_at || '')}</div>
-        <div class="mono" style="opacity:.75">${escapeHtml(u.status || '')}</div>
+
+    host.innerHTML = r.map(u => `
+      <div class="list__row">
+        <div style="min-width:0;">
+          <div style="font-weight:900;">${escapeHtml(u.username || '')}</div>
+          <div class="muted mono" style="font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            ${escapeHtml(u.id || '')}
+          </div>
+        </div>
+        <div class="badge" style="justify-content:center;">${escapeHtml(u.role || '')}</div>
+        <button class="btn btn--ghost" data-user-view="${escapeHtml(u.username || '')}">View</button>
       </div>
     `).join('');
+
+    // View details (Pilot)
+    $$('#usersList [data-user-view], #usersBody [data-user-view]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const uname = btn.getAttribute('data-user-view') || '';
+        const user = r.find(x => (x.username || '') === uname) || null;
+        const editor = $('#userEditor');
+        if (!editor) return;
+        editor.innerHTML = user
+          ? `<pre class="pre">${escapeHtml(JSON.stringify(user, null, 2))}</pre>`
+          : '<div class="muted">User not found.</div>';
+      });
+    });
   }
 
   async function createUser() {
-    const username = prompt('username?'); if (!username) return;
-    const password = prompt('password?'); if (!password) return;
-    const role = prompt('role? (admin/operator/auditor)', 'operator') || 'operator';
-    await apiPost('/api/users', { username, password, role });
+    const role = (state.me && state.me.role) || '';
+    if (role !== 'admin') {
+      toast('هذه العملية متاحة للإدارة فقط', 'warn');
+      return;
+    }
+
+    const username = ($('#newUser')?.value || '').trim();
+    const password = ($('#newPass')?.value || '').trim();
+    const r = $('#newRole');
+    const newRole = (r && r.value) ? r.value : 'operator';
+
+    if (!username || !password) {
+      toast('أدخل اسم المستخدم وكلمة المرور', 'warn');
+      return;
+    }
+
+    await apiPost('/api/users', { username, password, role: newRole });
     toast('تم إنشاء المستخدم', 'ok');
+
+    try { $('#newUser').value = ''; $('#newPass').value = ''; } catch {}
     await refreshUsers();
   }
 
@@ -945,5 +1044,5 @@
     try { await navigator.serviceWorker.register('./sw.js'); } catch {}
   }
 
-  boot();
+  boot().catch((e)=>{ console.error(e); });
 })();

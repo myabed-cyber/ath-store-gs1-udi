@@ -2,12 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" id="metaThemeColor" content="#f0f4f8"/>
+  <meta name="theme-color" id="metaThemeColor" content="#f6f7fb"/>
 
   <script>
-    // Theme boot (prevents flash). Stored in localStorage: gs1_ui_theme = "light" | "dark"
+    // Theme boot (prevents flash). localStorage: gs1_ui_theme = "light" | "dark"
     (function () {
       try {
         var key = 'gs1_ui_theme';
@@ -16,7 +16,7 @@
         var theme = saved || (prefersDark ? 'dark' : 'light');
         document.documentElement.dataset.theme = theme;
         var meta = document.getElementById('metaThemeColor');
-        if (meta) meta.setAttribute('content', theme === 'dark' ? '#030712' : '#f0f4f8');
+        if (meta) meta.setAttribute('content', theme === 'dark' ? '#050a14' : '#f6f7fb');
       } catch (e) {}
     })();
   </script>
@@ -24,1001 +24,430 @@
   <link rel="manifest" href="./manifest.webmanifest"/>
   <title>GS1/UDI Enterprise Hub</title>
   <link rel="icon" href="./assets/logo.svg" type="image/svg+xml"/>
-  
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 
-  <style>
-    /* --- ULTRA MODERN / FUTURISTIC ENTERPRISE THEME --- */
-    :root {
-      /* Dynamic Palette */
-      --primary: #2563eb;       /* Royal Blue */
-      --primary-light: #60a5fa; 
-      --primary-dark: #1e3a8a;
-      
-      --accent: #06b6d4;        /* Cyan Neon */
-      --accent-glow: rgba(6, 182, 212, 0.4);
-
-      --bg-app: #f0f4f8;        /* Ultra light slate */
-      --bg-glass: rgba(255, 255, 255, 0.75);
-      --bg-glass-heavy: rgba(255, 255, 255, 0.90);
-      
-      --text-main: #0f172a;     /* Deep Navy */
-      --text-muted: #64748b;
-      
-      /* Status */
-      --success: #059669;
-      --warn: #d97706;
-      --danger: #dc2626;
-
-      /* Physics */
-      --radius-xl: 24px;
-      --radius-lg: 16px;
-      --radius-md: 12px;
-      
-      /* Depth & Shadows (Soft & Deep) */
-      --shadow-float: 0 20px 40px -10px rgba(30, 58, 138, 0.12), 0 0 20px rgba(255, 255, 255, 0.8) inset;
-      --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
-      --glass-border: 1px solid rgba(255, 255, 255, 0.6);
-      --blur-strength: 20px;
-
-      /* Fonts */
-      --font-ar: 'Cairo', sans-serif;
-      --font-en: 'Inter', sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-    }
-
-    * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
-
-    /* Animated Background */
-    body {
-      margin: 0;
-      font-family: var(--font-ar);
-      background-color: var(--bg-app);
-      /* Subtle mesh gradient background */
-      background-image: 
-        radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
-      background-attachment: fixed;
-      color: var(--text-main);
-      line-height: 1.6;
-      font-size: 16px;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* English Font Overrides */
-    input, pre, .mono, .brand__sub, .doc__t, .doc__s, .kpi__v, .table { font-family: var(--font-en); }
-
-    /* --- LAYOUT --- */
-    .bg { min-height: 100vh; display: flex; flex-direction: column; }
-    
-    .main {
-      flex: 1;
-      padding: 2rem;
-      max-width: 1400px;
-      width: 100%;
-      margin: 0 auto;
-      margin-top: 1rem; /* Space for floating nav */
-    }
-
-    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2rem; }
-    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; }
-    .split { display: grid; grid-template-columns: 1fr 380px; gap: 2rem; }
-    .row { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; }
-    .row--wrap { flex-wrap: wrap; }
-    [hidden] { display: none !important; }
-
-    /* --- TYPOGRAPHY (Bold & Gradient) --- */
-    .h1 {
-      font-size: 2.2rem;
-      font-weight: 900;
-      margin: 0 0 1.5rem 0;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      display: inline-block;
-    }
-
-    .h2 {
-      font-size: 1.35rem;
-      font-weight: 800;
-      margin: 0 0 1.5rem 0;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    /* Abstract accent shape */
-    .h2::before {
-      content: ''; display: block; width: 12px; height: 12px;
-      background: var(--accent);
-      border-radius: 4px;
-      transform: rotate(45deg);
-      box-shadow: 0 0 10px var(--accent-glow);
-    }
-
-    .muted { color: var(--text-muted); font-size: 0.95rem; line-height: 1.7; margin-bottom: 1.5rem; }
-    .mono { 
-      font-family: var(--font-mono); font-size: 0.85em; 
-      background: rgba(15, 23, 42, 0.05); padding: 4px 8px; border-radius: 6px; 
-      color: var(--primary-dark);
-    }
-
-    /* --- GLASS CARDS (The Core Design Element) --- */
-    .card {
-      background: var(--bg-glass);
-      backdrop-filter: blur(var(--blur-strength));
-      -webkit-backdrop-filter: blur(var(--blur-strength));
-      border: var(--glass-border);
-      border-radius: var(--radius-xl);
-      padding: 2.5rem;
-      box-shadow: var(--shadow-card);
-      margin-bottom: 2rem;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    /* Subtle gloss effect */
-    .card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 100%;
-      background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 100%);
-      pointer-events: none; z-index: 0;
-    }
-    .card > * { position: relative; z-index: 1; }
-
-    .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-float); }
-
-    .card--hero {
-      background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240, 249, 255, 0.9) 100%);
-    }
-
-    .card__head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
-
-    /* --- FLOATING NAVBAR (Island UI) --- */
-    .topbar {
-      margin: 1rem 2rem 0;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: var(--radius-lg);
-      padding: 0.75rem 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
-      border: 1px solid rgba(255,255,255,0.5);
-      position: sticky;
-      top: 1rem;
-      z-index: 1000;
-    }
-
-    
-    /* Backdrop-filter fallback (older browsers) */
-    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .topbar, .card, .card--hero {
-        background: rgba(255,255,255,0.92);
-      }
-      html[data-theme="dark"] .topbar,
-      html[data-theme="dark"] .card,
-      html[data-theme="dark"] .card--hero {
-        background: rgba(15,23,42,0.92);
-      }
-    }
-
-.brand { display: flex; align-items: center; gap: 1rem; }
-    /*
-     * Brand logo sizing
-     * Use clamp() so the logo scales gracefully from small screens to large monitors.
-     * Minimum size 48px, grows with viewport width up to 96px on desktop.
-     */
-    .brand__logo {
-      height: clamp(48px, 8vw, 96px);
-      width: clamp(48px, 8vw, 96px);
-      filter: drop-shadow(0 4px 6px rgba(37,99,235,0.2));
-    }
-    .brand__name { font-weight: 800; font-size: 1.15rem; color: var(--text-main); letter-spacing: -0.01em; }
-    .brand__sub { 
-      font-size: 0.65rem; color: var(--primary); font-weight: 700; 
-      text-transform: uppercase; letter-spacing: 1px; 
-      background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 4px;
-      margin-top: 4px; display: inline-block;
-    }
-
-    .nav { 
-      display: flex; gap: 0.5rem; 
-      background: rgba(0,0,0,0.03); 
-      padding: 4px; 
-      border-radius: 99px; /* Pill shape */
-    }
-    .nav__link {
-      text-decoration: none;
-      color: var(--text-muted);
-      padding: 0.6rem 1.5rem;
-      border-radius: 99px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    }
-    .nav__link:hover { color: var(--primary); background: rgba(255,255,255,0.5); }
-    .nav__link[data-active="true"] { 
-      background: #fff; 
-      color: var(--primary); 
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
-      font-weight: 700;
-    }
-    
-    .topbar__right { display: flex; gap: 1rem; align-items: center; }
-    /*
-     * Corp logo sizing
-     * Increase the size and make it responsive as well.  The logo scales between 45px and 80px
-     * depending on the viewport width.
-     */
-    .corp-logo {
-      height: clamp(45px, 5vw, 80px);
-      border-radius: 8px;
-    }
-
-    /* --- MODERN INPUTS --- */
-    .field { margin-bottom: 1.5rem; }
-    .field span { 
-      display: block; margin-bottom: 0.6rem; font-size: 0.85rem; 
-      font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em; 
-    }
-    
-    .input, select, input {
-      width: 100%;
-      background: #fff;
-      border: 2px solid transparent;
-      padding: 1rem 1.25rem;
-      border-radius: var(--radius-md);
-      font-size: 1rem;
-      font-family: var(--font-en);
-      color: var(--text-main);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-      transition: all 0.2s ease;
-    }
-    .input:hover, select:hover, input:hover { box-shadow: 0 6px 15px rgba(0,0,0,0.06); }
-    .input:focus, select:focus, input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-      transform: scale(1.01);
-    }
-    .input::placeholder { color: #cbd5e1; }
-
-    /* --- BUTTONS (Tactile & Gradient) --- */
-    .btn {
-      cursor: pointer;
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 0.9rem 1.75rem;
-      font-size: 1rem; font-weight: 700;
-      border-radius: var(--radius-md);
-      border: none;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      position: relative; overflow: hidden;
-      font-family: var(--font-ar);
-    }
-    
-    .btn--primary {
-      background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
-      color: white;
-      box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
-    }
-    .btn--primary:hover:not(:disabled) {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.5);
-    }
-    .btn--primary::after {
-      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: linear-gradient(rgba(255,255,255,0.2), transparent);
-      opacity: 0; transition: opacity 0.2s;
-    }
-    .btn--primary:hover::after { opacity: 1; }
-
-    .btn:not(.btn--primary) {
-      background: #fff; border: 1px solid #e2e8f0; color: var(--text-main);
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .btn:not(.btn--primary):hover:not(:disabled) {
-      border-color: var(--primary); color: var(--primary);
-      transform: translateY(-1px);
-    }
-    .btn--ghost { border: none !important; background: transparent !important; box-shadow: none !important; color: var(--text-muted) !important; }
-    .btn--ghost:hover { background: rgba(0,0,0,0.05) !important; color: var(--text-main) !important; }
-
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); transform: none !important; }
-
-    /* --- SCANNER (Sci-Fi HUD) --- */
-    .scanner {
-      position: relative;
-      background: #000;
-      border-radius: 20px;
-      overflow: hidden;
-      margin-bottom: 2rem;
-      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .scanner__view { position: relative; width: 100%; height: 0; padding-bottom: 60%; }
-    
-    #video { 
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-      object-fit: cover; opacity: 0.7; 
-    }
-    
-    /* HUD Overlay Grid */
-    .scanner__view::before {
-      content: ''; position: absolute; inset: 0;
-      background-image: 
-        linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px);
-      background-size: 40px 40px;
-      z-index: 1; pointer-events: none;
-    }
-
-    .scanner__frame {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 70%; height: 50%;
-      z-index: 5;
-      box-shadow: 0 0 0 9999px rgba(0,0,0,0.75); /* Dark focus mask */
-      border-radius: 16px;
-    }
-
-    /* Tech Corners */
-    .scanner__frame::after {
-      content: ''; position: absolute; inset: -5px;
-      border: 3px solid var(--accent); /* Cyan color */
-      border-radius: 16px;
-      clip-path: polygon(
-        0 40px, 0 0, 40px 0, 
-        calc(100% - 40px) 0, 100% 0, 100% 40px,
-        100% calc(100% - 40px), 100% 100%, calc(100% - 40px) 100%,
-        40px 100%, 0 100%, 0 calc(100% - 40px)
-      );
-      filter: drop-shadow(0 0 8px var(--accent));
-    }
-    
-    /* Scanning Line */
-    .scanner__frame::before {
-      content: ''; position: absolute; left: 10px; right: 10px; height: 3px;
-      background: var(--accent);
-      top: 50%;
-      box-shadow: 0 0 20px var(--accent), 0 0 10px white;
-      animation: scanMove 2.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-      z-index: 6; opacity: 0.8;
-    }
-    @keyframes scanMove {
-      0% { top: 5%; opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { top: 95%; opacity: 0; }
-    }
-
-    .scanner__tip {
-      position: absolute; bottom: 30px; left: 0; right: 0; text-align: center;
-      color: var(--accent); font-weight: 600; font-size: 1rem;
-      text-transform: uppercase; letter-spacing: 2px;
-      z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,1);
-    }
-
-    .scanner__meta {
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 1.5rem; display: grid; grid-template-columns: 1fr auto; gap: 1rem;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      color: white;
-    }
-    .kv__k { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-    .kv__v { font-size: 1.5rem; font-weight: 700; color: #fff; font-family: var(--font-mono); text-shadow: 0 0 10px rgba(255,255,255,0.3); }
-
-    /* --- KPIS & DASHBOARD --- */
-    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-
-    .kpi {
-      background: #fff; padding: 1.5rem; border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-card); position: relative; overflow: hidden;
-      border: 1px solid #e2e8f0;
-      transition: transform 0.2s;
-    }
-    .kpi:hover { transform: translateY(-5px); }
-    
-    .kpi__k { font-size: 0.85rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-    .kpi__v { 
-      font-size: 2.5rem; font-weight: 900; color: var(--text-main); 
-      margin-top: 0.5rem; letter-spacing: -2px; 
-    }
-    
-    /* Indicator Dots */
-    .kpi::after { content: ''; position: absolute; top: 1.5rem; right: 1.5rem; width: 12px; height: 12px; border-radius: 50%; background: #e2e8f0; }
-    .kpi--ok::after { background: var(--success); box-shadow: 0 0 10px var(--success); }
-    .kpi--warn::after { background: var(--warn); box-shadow: 0 0 10px var(--warn); }
-    .kpi--bad::after { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
-
-    /* --- TABLE (Clean List) --- */
-    .table { background: #fff; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-    .table__head {
-      display: grid; grid-template-columns: 1fr 2fr 1fr 1fr;
-      background: #f8fafc; padding: 1.25rem 1.5rem;
-      font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
-    }
-    .table__body > div {
-      display: grid; grid-template-columns: 1fr 2fr 1fr 1fr;
-      padding: 1.25rem 1.5rem; border-top: 1px solid #f1f5f9;
-      font-size: 0.95rem; align-items: center; transition: background 0.1s;
-    }
-    .table__body > div:hover { background: #f0f9ff; }
-
-    /* --- DOCS --- */
-    .doc {
-      display: flex; align-items: center; gap: 1rem;
-      background: #fff; padding: 1.25rem; border-radius: var(--radius-lg);
-      border: 1px solid #e2e8f0; margin-bottom: 1rem; text-decoration: none;
-      transition: all 0.2s; position: relative;
-    }
-    .doc:hover { border-color: var(--primary); transform: translateX(-5px); box-shadow: 0 4px 15px rgba(37,99,235,0.1); }
-    .doc::before { content: '📄'; font-size: 1.5rem; filter: grayscale(1); }
-    .doc:hover::before { filter: grayscale(0); transform: scale(1.1); transition: transform 0.2s; }
-    
-    .doc__t { font-weight: 700; color: var(--text-main); font-size: 1.05rem; }
-    .doc__s { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
-
-    /* --- ALERTS & PILLS --- */
-    .pill {
-      display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 99px;
-      font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
-      background: #f1f5f9; color: var(--text-muted);
-    }
-    .pill--warn { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
-
-    .alert {
-      background: #fee2e2; border-right: 4px solid var(--danger);
-      color: #991b1b; padding: 1rem; border-radius: var(--radius-md);
-      font-weight: 600; display: flex; align-items: center; margin-top: 1.5rem;
-    }
-
-    /* --- UTILS --- */
-    .hr { height: 1px; background: #e2e8f0; margin: 2rem 0; }
-    .pre { background: #0f172a; color: #e2e8f0; padding: 1.5rem; border-radius: var(--radius-lg); font-size: 0.9rem; overflow-x: auto; }
-    .toast {
-      position: fixed; bottom: 2rem; right: 2rem; z-index: 2000;
-      background: #1e293b; color: #fff; padding: 1rem 2rem;
-      border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-      font-weight: 600; animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .footer { text-align: center; padding: 3rem 0; opacity: 0.7; font-size: 0.9rem; }
-
-
-
-    /* ================================
-       DARK THEME (Hybrid from t2.html)
-       ================================ */
-    html[data-theme="dark"] {
-      --bg-app: #030712;
-      --bg-glass: rgba(15, 23, 42, 0.70);
-      --bg-glass-heavy: rgba(15, 23, 42, 0.90);
-
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-
-      --primary: #3b82f6;
-      --primary-light: #93c5fd;
-      --primary-dark: #1d4ed8;
-
-      --accent: #06b6d4;
-      --accent-glow: rgba(6, 182, 212, 0.55);
-
-      --success: #10b981;
-      --warn: #f59e0b;
-      --danger: #ef4444;
-
-      --glass-border: 1px solid rgba(255,255,255,0.10);
-      --shadow-card: 0 20px 50px -10px rgba(0, 0, 0, 0.55);
-      --shadow-float: 0 30px 70px -15px rgba(0, 0, 0, 0.70);
-
-      --blur-strength: 14px;
-      --radius-xl: 18px;
-      --radius-lg: 14px;
-      --radius-md: 12px;
-    }
-
-    /* Dark background grid + halo */
-    html[data-theme="dark"] body {
-      background-color: var(--bg-app);
-      background-image:
-        linear-gradient(rgba(6, 182, 212, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(6, 182, 212, 0.035) 1px, transparent 1px),
-        radial-gradient(circle at 50% 0%, rgba(29, 78, 216, 0.35) 0%, rgba(3, 7, 18, 1) 60%);
-      background-size: 52px 52px, 52px 52px, 100% 100%;
-      background-attachment: fixed;
-      color: var(--text-main);
-    }
-
-    html[data-theme="dark"] .topbar {
-      background: rgba(3, 7, 18, 0.82);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-bottom: 1px solid rgba(6, 182, 212, 0.22);
-      box-shadow: 0 14px 40px rgba(0,0,0,0.6);
-    }
-
-    html[data-theme="dark"] .brand__logo { filter: drop-shadow(0 0 6px rgba(59,130,246,0.65)); }
-    html[data-theme="dark"] .brand__name {
-      background: linear-gradient(90deg, #ffffff 0%, var(--primary-light) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    html[data-theme="dark"] .brand__sub {
-      color: var(--accent);
-      background: rgba(6, 182, 212, 0.08);
-      border: 1px solid rgba(6, 182, 212, 0.35);
-    }
-    html[data-theme="dark"] .corp-logo { filter: brightness(1.08) contrast(1.05); }
-
-    html[data-theme="dark"] .nav {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.10);
-    }
-    html[data-theme="dark"] .nav__link { color: var(--text-muted); }
-    html[data-theme="dark"] .nav__link:hover { color: #fff; background: rgba(255,255,255,0.06); }
-    html[data-theme="dark"] .nav__link[data-active="true"] {
-      background: var(--primary);
-      color: #fff;
-      box-shadow: 0 0 16px rgba(59,130,246,0.45);
-    }
-
-    html[data-theme="dark"] .card {
-      background: var(--bg-glass);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-top: 1px solid rgba(255,255,255,0.14);
-      box-shadow: var(--shadow-card);
-    }
-    html[data-theme="dark"] .card::before {
-      background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%);
-    }
-    html[data-theme="dark"] .card--hero {
-      background:
-        radial-gradient(circle at top right, rgba(30, 58, 138, 0.28), transparent 55%),
-        var(--bg-glass);
-    }
-
-    html[data-theme="dark"] .h1 {
-      background: linear-gradient(90deg, #fff, var(--primary-light));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 26px rgba(59,130,246,0.25);
-      letter-spacing: 0.02em;
-    }
-    html[data-theme="dark"] .h2 { color: var(--accent); }
-    html[data-theme="dark"] .h2::before { box-shadow: 0 0 12px rgba(6,182,212,0.55); }
-
-    html[data-theme="dark"] .muted { color: var(--text-muted); }
-    html[data-theme="dark"] .mono {
-      background: rgba(0,0,0,0.35);
-      color: var(--accent);
-    }
-
-    html[data-theme="dark"] .input,
-    html[data-theme="dark"] select,
-    html[data-theme="dark"] input {
-      background: rgba(15, 23, 42, 0.88);
-      color: var(--text-main);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.10);
-    }
-    html[data-theme="dark"] .input:focus,
-    html[data-theme="dark"] select:focus,
-    html[data-theme="dark"] input:focus {
-      border-color: rgba(59,130,246,0.85);
-      box-shadow: 0 0 0 4px rgba(59,130,246,0.22);
-    }
-
-    html[data-theme="dark"] .btn {
-      background: rgba(255,255,255,0.06);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.10);
-    }
-    html[data-theme="dark"] .btn:hover { background: rgba(255,255,255,0.10); }
-    html[data-theme="dark"] .btn--primary {
-      background: var(--primary);
-      border-color: rgba(59,130,246,0.55);
-      box-shadow: 0 0 16px rgba(59,130,246,0.25);
-    }
-    html[data-theme="dark"] .btn--primary:hover { filter: brightness(1.05); }
-    html[data-theme="dark"] .btn--ghost { background: rgba(255,255,255,0.05); }
-
-    html[data-theme="dark"] .hr { background: rgba(255,255,255,0.10); }
-
-    html[data-theme="dark"] .table__head { background: rgba(255,255,255,0.05); }
-    html[data-theme="dark"] .table__body > div {
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-
-    html[data-theme="dark"] .toast { background: rgba(15,23,42,0.95); border: 1px solid rgba(255,255,255,0.08); }
-
-    /* Better safe-area handling for iOS */
-    .topbar { padding-top: calc(0.75rem + env(safe-area-inset-top)); }
-    .main { padding-bottom: calc(2rem + env(safe-area-inset-bottom)); }
-
-    /* --- MOBILE RESPONSIVENESS --- */
-    @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
-    @media (max-width: 640px) {
-      .main { padding: 1rem; margin-top: 0; }
-      .topbar { flex-direction: column; gap: 1rem; margin: 0; border-radius: 0; position: sticky; top: 0; border: none; border-bottom: 1px solid rgba(0,0,0,0.05); }
-      .topbar__right { width: 100%; justify-content: space-between; }
-      .nav { width: 100%; overflow-x: auto; justify-content: flex-start; }
-      .nav__link { white-space: nowrap; padding: 0.5rem 1rem; font-size: 0.85rem; }
-      
-      .card { padding: 1.5rem; border-radius: var(--radius-lg); }
-      .scanner { border-radius: 0; margin: 0 -1.5rem 1.5rem; width: calc(100% + 3rem); border: none; }
-      .scanner__view { padding-bottom: 110%; }
-      .scanner__frame { width: 80%; height: 40%; }
-      .h1 { font-size: 1.75rem; }
-      
-      .table__head { display: none; }
-      .table__body > div { grid-template-columns: 1fr; gap: 0.5rem; padding: 1rem; position: relative; }
-    }
-    
-    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  </style>
+  <!-- Pro UI -->
+  <link rel="stylesheet" href="./ui.css">
 </head>
-<body>
-  <div class="bg">
-    <header class="topbar">
-      <div class="brand">
-        <!-- Use the designer-12 logo provided by the user.  This image is stored in the assets folder.
-             It will scale responsively based on the CSS defined above. -->
-        <img class="brand__logo" src="./assets/designer-12.png" alt="GS1/UDI" />
-        <div class="brand__text">
-          <div class="brand__name">GS1/UDI Enterprise Hub</div>
-          <div class="brand__sub">Operator (Scan‑Only) + Admin Console</div>
+
+<body data-page="login" data-auth="0">
+  <div class="shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <img class="sb-logo" src="./logo.png" alt="Logo"/>
+        <div>
+          <div class="sb-title">GS1/UDI Enterprise Hub</div>
+          <div class="sb-sub">Warehouse Barcode & UDI</div>
         </div>
       </div>
 
-      <nav class="nav">
-        <a href="#/operator" class="nav__link" data-nav="operator">Operator</a>
-        <a href="#/admin" class="nav__link" data-nav="admin">Admin</a>
-        <a href="#/docs" class="nav__link" data-nav="docs">Docs</a>
+      <nav class="sb-nav" aria-label="Primary">
+        <a class="sb-link" href="#/operator" data-nav="operator" title="Operator">
+          <svg class="sb-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>Operator</span>
+        </a>
+
+        <a class="sb-link" href="#/admin" data-nav="admin" title="Admin">
+          <svg class="sb-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l8 4v6c0 5-3.5 9-8 8-4.5 1-8-3-8-8V7l8-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Admin</span>
+        </a>
+
+        <a class="sb-link" href="#/docs" data-nav="docs" title="Docs">
+          <svg class="sb-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h8l4 4v14H7V3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M15 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>Docs</span>
+        </a>
       </nav>
 
-      <div class="topbar__right">
-        <img class="corp-logo" src="./assets/ath-medical-division.png" alt="Arabian Trade House — Medical Division" />
-        <button class="btn btn--ghost" id="btnTheme" title="Toggle Theme">Theme</button>
-        <button class="btn btn--ghost" id="btnHealth">Health</button>
-        <button class="btn btn--ghost" id="btnLogout" hidden>Logout</button>
+      <div class="sb-foot">
+        <div class="muted mono" id="envHint"></div>
+        <div class="muted" style="margin-top:6px;">© GS1/UDI Enterprise Hub</div>
       </div>
-    </header>
+    </aside>
 
-    <main class="main">
-      <!-- LOGIN -->
-      <section class="page" id="page-login" data-page="login">
-        <div class="grid-2">
-          <div class="card card--hero">
-            <h1 class="h1">تسجيل الدخول</h1>
-            <p class="muted">
-              نفس الواجهة تخدم المشغل (Scan‑Only) والإدارة. المصادقة هنا JWT (Pilot) وقابلة للاستبدال لاحقاً بـ Entra ID / SSO.
-            </p>
-
-            <form id="loginForm" class="form">
-              <label class="field">
-                <span>اسم المستخدم</span>
-                <input id="loginUser" autocomplete="username" required placeholder="operator / admin" />
-              </label>
-
-              <label class="field">
-                <span>كلمة المرور</span>
-                <input id="loginPass" type="password" autocomplete="current-password" required placeholder="••••••••" />
-              </label>
-
-              <div class="row">
-                <button class="btn btn--primary" type="submit" id="btnLogin">دخول</button>
-                <button class="btn" type="button" id="btnDemo">دخول تجريبي</button>
-              </div>
-
-              <div class="hint">
-                <div class="pill pill--warn">الكاميرا تتطلب HTTPS وتبويب مباشر</div>
-                <div class="pill">افتح Top‑Level (ليس داخل iframe)</div>
-              </div>
-
-              <div class="alert" id="loginAlert" hidden></div>
-            </form>
-          </div>
-
-          <div class="card">
-            <h2 class="h2">نموذج التشغيل</h2>
-            <ol class="ol">
-              <li><b>Operator</b>: مسح فقط ← لا إدخال يدوي.</li>
-              <li><b>PASS/WARN/BLOCK</b>: نتيجة فورية مع سبب واضح.</li>
-              <li><b>Case</b>: WARN/BLOCK تتحول لحالة للإدارة.</li>
-              <li><b>Offline Queue</b>: حفظ محلي ثم Sync تلقائي.</li>
-            </ol>
-
-            <div class="mini-spec">
-              <div class="mini-spec__k">Frontend</div><div class="mini-spec__v">Static HTML/JS + PWA</div>
-              <div class="mini-spec__k">Scanner</div><div class="mini-spec__v">BarcodeDetector → ZXing fallback</div>
-              <div class="mini-spec__k">API</div><div class="mini-spec__v">/api/* (same-origin)</div>
-              <div class="mini-spec__k">RBAC</div><div class="mini-spec__v">operator / admin / auditor</div>
-            </div>
+    <!-- WORKSPACE -->
+    <div class="workspace">
+      <header class="topbar">
+        <div class="tb-left">
+          <img class="hdr-logo" src="./logo_header.png" alt="GS1/UDI"/>
+          <div class="tb-title">
+            <div class="name">GS1/UDI Enterprise Hub</div>
+            <div class="crumb" id="pageCrumb">Unified Operator + Admin Console</div>
           </div>
         </div>
-      </section>
 
-      <!-- OPERATOR -->
-      <section class="page" id="page-operator" data-page="operator" hidden>
-        <div class="split">
-          <div class="card">
-            <div class="card__head">
-              <h1 class="h1">Operator — المسح فقط</h1>
-              <div class="badge" id="authBadge">غير مصرح</div>
-            </div>
+        <div class="tb-right">
+          <img class="corp-logo" src="./assets/ath-medical-division.png" alt="Arabian Trade House — Medical Division" />
+          <button class="btn btn--ghost" id="btnTheme" title="تبديل الوضع">Theme</button>
+          <button class="btn btn--ghost" id="btnHealth" title="Health Check">Health</button>
+          <button class="btn btn--ghost" id="btnLogout" hidden>Logout</button>
+        </div>
+      </header>
 
-            <div class="row row--wrap">
-              <label class="field field--inline">
-                <span>القالب</span>
-                <select id="tplSelect">
-                  <option value="RECEIPT">Receipt</option>
-                  <option value="TRANSFER">Transfer</option>
-                  <option value="RETURN">Return</option>
-                  <option value="PICK">Pick</option>
-                </select>
-              </label>
+      <main class="main">
+        <!-- LOGIN -->
+        <section class="page" id="page-login" data-page="login">
+          <div class="login-wrap">
+            <div class="hero">
+              <div>
+                <div class="hero-top">
+                  <img src="./logo.png" alt="GS1/UDI"/>
+                  <div>
+                    <h1>تسجيل الدخول</h1>
+                    <p>واجهة واحدة للمشغّل والإدارة — منظمة، واضحة، وقابلة للتوسع.</p>
+                  </div>
+                </div>
 
-              <label class="field field--inline">
-                <span>ENGINE</span>
-                <select id="engineSelect">
-                  <option value="auto">AUTO</option>
-                  <option value="bd">BarcodeDetector</option>
-                  <option value="zxing">ZXing</option>
-                </select>
-              </label>
+                <div class="hr"></div>
 
-              <button class="btn btn--primary" id="btnStart">بدء المسح</button>
-              <button class="btn" id="btnStop" disabled>إيقاف</button>
-              <button class="btn btn--ghost" id="btnTorch" disabled>فلاش</button>
-              <button class="btn btn--ghost" id="btnSwap" disabled>تبديل الكاميرا</button>
-            </div>
-
-            <div class="scanner">
-              <div class="scanner__view">
-                <video id="video" playsinline muted></video>
-                <div class="scanner__frame"></div>
-                <div class="scanner__tip">وجّه الكاميرا نحو الباركود داخل الإطار</div>
+                <ul>
+                  <li>Scanner UX ثابت + واضح (PASS/WARN/BLOCK)</li>
+                  <li>Cases Inbox للإدارة</li>
+                  <li>GTIN Mapping + Audit Log</li>
+                  <li>Ready for multi-tenant expansion</li>
+                </ul>
               </div>
 
-              <div class="scanner__meta">
-                <div class="kv">
-                  <div class="kv__k">آخر قراءة</div>
-                  <div class="kv__v mono" id="rawLast">—</div>
+              <div class="muted" style="font-weight:800;">
+                ملاحظة: المصادقة JWT (Pilot) ويمكن استبدالها لاحقًا بـ SSO.
+              </div>
+            </div>
+
+            <div class="card card--hero">
+              <div class="page-head">
+                <div>
+                  <div class="h1">بيانات الدخول</div>
+                  <div class="sub">استخدم حساب Operator أو Admin حسب الصلاحيات.</div>
                 </div>
+              </div>
+
+              <form id="loginForm" class="row" style="flex-direction:column; align-items:stretch;">
+                <label class="field">
+                  <span>اسم المستخدم</span>
+                  <input id="loginUser" autocomplete="username" required placeholder="operator / admin" />
+                </label>
+
+                <label class="field">
+                  <span>كلمة المرور</span>
+                  <input id="loginPass" type="password" autocomplete="current-password" required placeholder="••••••••" />
+                </label>
+
+                <div class="row" style="justify-content:space-between;">
+                  <button class="btn btn--primary" id="btnLogin" type="submit">دخول</button>
+                  <button class="btn btn--ghost" id="btnDemo" type="button">تعبئة Demo</button>
+                </div>
+
+                <div id="loginAlert" class="alert" hidden></div>
+              </form>
+
+              <div class="hr"></div>
+              <div class="muted" style="font-weight:800;">
+                نصيحة: بعد تسجيل الدخول — انتقل إلى Operator للمسح أو Admin للوحة الإدارة.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- OPERATOR -->
+        <section class="page" id="page-operator" data-page="operator" hidden>
+          <div class="page-head">
+            <div>
+              <h1 class="h1">Operator Console</h1>
+              <div class="sub">مسح الباركود + قرار (PASS/WARN/BLOCK) + إنشاء Case عند الحاجة.</div>
+            </div>
+            <div class="badge" id="authBadge">—</div>
+          </div>
+
+          <div class="grid-2">
+            <!-- Left: Scanner -->
+            <div class="card">
+              <div class="row row--between">
+                <div>
+                  <div class="h2">Scanner</div>
+                  <div class="sub">وجّه الكاميرا داخل الإطار للحصول على قراءة ثابتة.</div>
+                </div>
+                <div class="badge">
+                  Pending: <span class="mono" id="qPending">0</span>
+                  <button class="btn btn--ghost" id="btnSync" style="margin-inline-start:8px;">Sync</button>
+                </div>
+              </div>
+
+              <div class="hr"></div>
+
+              <div class="row">
+                <label class="field field--inline">
+                  <span>Transaction</span>
+                  <select id="tplSelect">
+                    <option value="RECEIPT">Receipt</option>
+                    <option value="TRANSFER">Transfer</option>
+                    <option value="RETURN">Return</option>
+                    <option value="PICK">Pick</option>
+                  </select>
+                </label>
+
+                <label class="field field--inline">
+                  <span>Engine</span>
+                  <select id="engineSelect">
+                    <option value="auto">AUTO</option>
+                    <option value="bd">BarcodeDetector</option>
+                    <option value="zxing">ZXing</option>
+                  </select>
+                </label>
+
+                <button class="btn btn--primary" id="btnStart">بدء المسح</button>
+                <button class="btn" id="btnStop" disabled>إيقاف</button>
+                <button class="btn btn--ghost" id="btnTorch" disabled>فلاش</button>
+                <button class="btn btn--ghost" id="btnSwap" disabled>تبديل</button>
+              </div>
+
+              <div style="margin-top:12px;">
+                <div class="scanner">
+                  <video id="video" playsinline muted></video>
+                  <div class="scanner__frame"></div>
+                  <div class="scanner__tip">وجّه الكاميرا نحو الباركود داخل الإطار</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Result + Actions -->
+            <div class="card">
+              <div class="row row--between">
+                <div>
+                  <div class="h2">Result</div>
+                  <div class="sub">القرار النهائي + الحقول المستخرجة من GS1 AI.</div>
+                </div>
+                <div class="row">
+                  <button class="btn btn--ghost" id="btnRescan">Rescan</button>
+                  <button class="btn" id="btnCreateCase">Create Case</button>
+                  <button class="btn btn--ghost" id="btnCopyJson">Copy JSON</button>
+                </div>
+              </div>
+
+              <div class="hr"></div>
+
+              <div class="fields" style="grid-template-columns: 1.2fr 1fr;">
                 <div class="kv">
-                  <div class="kv__k">الحالة</div>
+                  <div class="kv__k">Decision</div>
                   <div class="kv__v" id="statusPill"><span class="pill">—</span></div>
                 </div>
+                <div class="kv">
+                  <div class="kv__k">Last Raw</div>
+                  <div class="kv__v mono" id="rawLast">—</div>
+                </div>
               </div>
-            </div>
 
-            <div class="row row--wrap">
-              <button class="btn" id="btnRescan">إعادة المسح</button>
-              <button class="btn btn--warn" id="btnCreateCase">إرسال للإدارة</button>
-              <button class="btn btn--ghost" id="btnCopyJson">Copy Commit JSON</button>
-            </div>
-
-            <div class="card card--sub">
-              <h2 class="h2">تفاصيل مختصرة (عرض فقط)</h2>
-              <div class="grid-3" id="fieldsGrid"></div>
-            </div>
-
-            <div class="card card--sub">
-              <h2 class="h2">Offline Queue</h2>
-              <div class="row">
-                <div class="pill">Pending: <b id="qPending">0</b></div>
-                <button class="btn btn--ghost" id="btnSync">Sync</button>
+              <div style="margin-top:12px;">
+                <div class="h2" style="margin-bottom:8px;">Parsed Fields</div>
+                <div class="fields" id="fieldsGrid"></div>
               </div>
-              <div class="muted">إذا انقطع الاتصال، تُحفظ الطلبات محلياً وتُرسل عند عودة الشبكة.</div>
-            </div>
-          </div>
 
-          <aside class="side">
-            <div class="card">
-              <h2 class="h2">Commit (Pilot)</h2>
-              <p class="muted">محمّي بالسياسات + Idempotency. يمنع تلقائياً عند BLOCK. عند WARN يتم الترحيل فقط إذا سمحت السياسة.</p>
-              <div class="row row--wrap">
-                <button class="btn btn--primary" id="btnCommitReceipt">Commit: Purchase Receipt</button>
-                <button class="btn btn--primary" id="btnCommitTransfer">Commit: Transfer</button>
-              </div>
               <div class="hr"></div>
-              <div class="muted">Result</div>
-              <pre class="pre" id="commitOut">ابدأ المسح أولاً.</pre>
-            </div>
 
-            <div class="card">
-              <h2 class="h2">GTIN Map</h2>
-              <div class="row row--wrap">
-                <input id="gtinInput" class="input" placeholder="GTIN" />
-                <input id="itemInput" class="input" placeholder="Item No" />
+              <div class="row">
+                <button class="btn btn--primary" id="btnCommitReceipt">Commit Receipt</button>
+                <button class="btn" id="btnCommitTransfer">Commit Transfer</button>
+              </div>
+
+              <div style="margin-top:10px;">
+                <pre class="pre" id="commitOut">{ "status": "—" }</pre>
+              </div>
+
+              <div class="hr"></div>
+
+              <div class="h2">GTIN Mapping</div>
+              <div class="sub">ربط GTIN ببيانات العنصر (Pilot). يدعم التوسع إلى Catalog Sync.</div>
+
+              <div class="row" style="margin-top:10px;">
+                <input id="gtinInput" class="input" placeholder="GTIN (01)" style="flex: 1 1 180px;" />
+                <input id="itemInput" class="input" placeholder="Item name / code" style="flex: 2 1 260px;" />
                 <button class="btn" id="btnUpsertMap">Upsert</button>
               </div>
-              <div class="alert" id="mapAlert" hidden></div>
+              <div id="mapAlert" class="alert" hidden></div>
             </div>
-          </aside>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <!-- ADMIN -->
-      <section class="page" id="page-admin" data-page="admin" hidden>
-        <div class="grid-2">
-          <div class="card">
-            <h1 class="h1">Admin Dashboard</h1>
-            <p class="muted">لوحة مؤشرات + Inbox للحالات. مربوطة بالـ Middleware API.</p>
-
-            <div class="kpis">
-              <div class="kpi">
-                <div class="kpi__k">Scans (24h)</div>
-                <div class="kpi__v" id="kpiTotal">—</div>
-              </div>
-              <div class="kpi kpi--ok">
-                <div class="kpi__k">PASS</div>
-                <div class="kpi__v" id="kpiPass">—</div>
-              </div>
-              <div class="kpi kpi--warn">
-                <div class="kpi__k">WARN</div>
-                <div class="kpi__v" id="kpiWarn">—</div>
-              </div>
-              <div class="kpi kpi--bad">
-                <div class="kpi__k">BLOCK</div>
-                <div class="kpi__v" id="kpiBlock">—</div>
-              </div>
+        <!-- ADMIN -->
+        <section class="page" id="page-admin" data-page="admin" hidden>
+          <div class="page-head">
+            <div>
+              <h1 class="h1">Admin Console</h1>
+              <div class="sub">لوحة مؤشرات + Inbox للحالات + إدارة المستخدمين + سجل تدقيق.</div>
             </div>
-
-            <div class="row row--wrap">
+            <div class="row">
               <button class="btn btn--primary" id="btnRefreshDash">تحديث اللوحة</button>
               <button class="btn" id="btnRefreshCases">تحديث الحالات</button>
             </div>
+          </div>
 
-            <div class="hr"></div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="h2">KPIs (24h)</div>
+              <div class="sub">إحصائيات آخر 24 ساعة.</div>
+              <div class="hr"></div>
 
-            <h2 class="h2">Cases Inbox</h2>
-            <div class="filters">
-              <select id="caseStatus">
-                <option value="">كل الحالات</option>
-                <option value="NEW">NEW</option>
-                <option value="IN_PROGRESS">IN_PROGRESS</option>
-                <option value="RESOLVED">RESOLVED</option>
-              </select>
+              <div class="grid-3">
+                <div class="kv">
+                  <div class="kv__k">Total</div>
+                  <div class="kv__v" id="kpiTotal">—</div>
+                </div>
+                <div class="kv">
+                  <div class="kv__k">PASS</div>
+                  <div class="kv__v" id="kpiPass">—</div>
+                </div>
+                <div class="kv">
+                  <div class="kv__k">WARN</div>
+                  <div class="kv__v" id="kpiWarn">—</div>
+                </div>
+              </div>
 
-              <select id="caseDecision">
-                <option value="">كل القرارات</option>
-                <option value="WARN">WARN</option>
-                <option value="BLOCK">BLOCK</option>
-              </select>
+              <div style="margin-top:12px;">
+                <div class="kv">
+                  <div class="kv__k">BLOCK</div>
+                  <div class="kv__v" id="kpiBlock">—</div>
+                </div>
+              </div>
 
-              <input id="caseQ" class="input" placeholder="بحث (GTIN / Raw)" />
+              <div class="hr"></div>
+
+              <div class="h2">Audit Viewer</div>
+              <div class="sub">اختر نوع الحدث ثم Refresh لعرض الـ payload.</div>
+
+              <div class="row" style="margin-top:10px;">
+                <select id="auditType" style="flex: 1 1 220px;">
+                  <option value="">ALL</option>
+                  <option value="AUTH_LOGIN">AUTH_LOGIN</option>
+                  <option value="SCAN_VALIDATED">SCAN_VALIDATED</option>
+                  <option value="CASE_CREATED">CASE_CREATED</option>
+                  <option value="GTIN_MAP_UPSERT">GTIN_MAP_UPSERT</option>
+                  <option value="USER_CREATED">USER_CREATED</option>
+                  <option value="USER_UPDATED">USER_UPDATED</option>
+                </select>
+                <button class="btn btn--ghost" id="btnAudit">Refresh</button>
+              </div>
+
+              <div style="margin-top:10px;">
+                <pre class="pre" id="auditOut">اختر حدث لعرض الـ payload.</pre>
+              </div>
             </div>
 
-            <div class="table" id="casesTable">
-              <div class="table__head">
-                <div>Case</div><div>Raw</div><div>Checks</div><div>Action</div>
+            <div class="card">
+              <div class="h2">Cases Inbox</div>
+              <div class="sub">فلترة الحالات حسب الحالة/القرار + بحث نصي.</div>
+              <div class="hr"></div>
+
+              <div class="row">
+                <select id="caseStatus" style="flex: 1 1 160px;">
+                  <option value="">كل الحالات</option>
+                  <option value="NEW">NEW</option>
+                  <option value="IN_PROGRESS">IN_PROGRESS</option>
+                  <option value="RESOLVED">RESOLVED</option>
+                </select>
+
+                <select id="caseDecision" style="flex: 1 1 160px;">
+                  <option value="">كل القرارات</option>
+                  <option value="WARN">WARN</option>
+                  <option value="BLOCK">BLOCK</option>
+                </select>
+
+                <input id="caseQ" class="input" placeholder="بحث (GTIN / Raw)" style="flex: 2 1 220px;" />
               </div>
-              <div class="table__body" id="casesBody">
-                <div class="muted">جارٍ التحميل…</div>
+
+              <div style="margin-top:12px;" class="table" id="casesTable">
+                <div class="table__head">
+                  <div>Case</div><div>Raw</div><div>Checks</div><div>Action</div>
+                </div>
+                <div class="table__body" id="casesBody">
+                  <div class="muted">جارٍ التحميل…</div>
+                </div>
               </div>
+
+              <div class="hr"></div>
+
+              <div class="h2">Users & Roles</div>
+              <div class="sub">إدارة المستخدمين (Pilot).</div>
+
+              <div class="row" style="margin-top:10px;">
+                <input id="newUser" class="input" placeholder="Username" style="flex: 1 1 160px;" />
+                <input id="newPass" class="input" placeholder="Password" style="flex: 1 1 160px;" />
+                <select id="newRole" style="flex: 1 1 160px;">
+                  <option value="operator">operator</option>
+                  <option value="admin">admin</option>
+                  <option value="auditor">auditor</option>
+                </select>
+                <button class="btn" id="btnCreateUser">Create</button>
+              </div>
+
+              <div style="margin-top:12px;" class="grid-2">
+                <div>
+                  <div class="muted" style="font-weight:800; margin-bottom:8px;">قائمة المستخدمين</div>
+                  <div class="list" id="usersList"></div>
+                </div>
+                <div>
+                  <div class="muted" style="font-weight:800; margin-bottom:8px;">User Editor</div>
+                  <div class="card" style="box-shadow:none;" id="userEditor">
+                    <div class="muted">اختر مستخدم لتعديل بياناته.</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- DOCS -->
+        <section class="page" id="page-docs" data-page="docs" hidden>
+          <div class="page-head">
+            <div>
+              <h1 class="h1">Docs</h1>
+              <div class="sub">روابط التشغيل والمرجعيات (Runbook / Reference) داخل المجلد.</div>
             </div>
           </div>
 
           <div class="card">
-            <h2 class="h2">Users & Roles</h2>
-            <p class="muted">إدارة المستخدمين والأدوار (Pilot).</p>
-
-            <div class="row row--wrap">
-              <input id="newUser" class="input" placeholder="Username" />
-              <input id="newPass" class="input" placeholder="Password" />
-              <select id="newRole">
-                <option value="operator">operator</option>
-                <option value="admin">admin</option>
-                <option value="auditor">auditor</option>
-              </select>
-              <button class="btn" id="btnCreateUser">Create</button>
+            <div class="sub">
+              هذه الصفحة مخصصة لروابط الـ Runbook/Reference/Deck داخل السيرفر. داخل بيئة الإنتاج تُحمّل من /downloads.
             </div>
-
             <div class="hr"></div>
 
             <div class="grid-2">
-              <div>
-                <div class="muted">قائمة المستخدمين</div>
-                <div class="list" id="usersList"></div>
-              </div>
-              <div>
-                <div class="muted">تعديل مستخدم</div>
-                <div class="panel" id="userEditor">اختر مستخدم من القائمة.</div>
-              </div>
+              <a class="sb-link" style="border-color: var(--border); background: var(--panel2);" href="./downloads/OWNER_PILOT_RUNBOOK.pdf" target="_blank" rel="noreferrer">
+                <span>Owner Pilot Runbook (PDF)</span>
+              </a>
+
+              <a class="sb-link" style="border-color: var(--border); background: var(--panel2);" href="./reference.html" target="_blank" rel="noreferrer">
+                <span>Reference (HTML)</span>
+              </a>
             </div>
 
             <div class="hr"></div>
-
-            <h2 class="h2">Audit Log</h2>
-            <div class="row row--wrap">
-              <select id="auditType">
-                <option value="">All event types</option>
-                <option value="AUTH_LOGIN">AUTH_LOGIN</option>
-                <option value="SCAN_PARSE_VALIDATE">SCAN_PARSE_VALIDATE</option>
-                <option value="BC_COMMIT_REQUEST">BC_COMMIT_REQUEST</option>
-                <option value="CASE_CREATED">CASE_CREATED</option>
-                <option value="CASE_UPDATED">CASE_UPDATED</option>
-                <option value="GTIN_MAP_UPSERT">GTIN_MAP_UPSERT</option>
-                <option value="USER_CREATED">USER_CREATED</option>
-                <option value="USER_UPDATED">USER_UPDATED</option>
-              </select>
-              <button class="btn btn--ghost" id="btnAudit">Refresh</button>
-            </div>
-
-            <div class="panel">
-              <div class="muted">Event Details</div>
-              <pre class="pre" id="auditOut">اختر حدث لعرض الـ payload.</pre>
-            </div>
+            <div class="muted" style="font-weight:800;">يمكنك إضافة ملفات إضافية داخل public/downloads وربطها هنا.</div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- DOCS -->
-      <section class="page" id="page-docs" data-page="docs" hidden>
-        <div class="card">
-          <h1 class="h1">Docs</h1>
-          <p class="muted">
-            هذه الصفحة مخصصة لروابط الـ Runbook/Reference/Deck داخل الريبو. داخل بيئة الإنتاج تُحمّل من /downloads.
-          </p>
-
-          <div class="docs">
-            <a class="doc" href="./downloads/OWNER_PILOT_RUNBOOK.pdf" target="_blank" rel="noreferrer">
-              <div class="doc__t">Owner Pilot Runbook (PDF)</div>
-              <div class="doc__s">تشغيل / سياسات / استكشاف أعطال / خطة BC</div>
-            </a>
-
-            <a class="doc" href="./downloads/FEATURES_DECK.pptx" target="_blank" rel="noreferrer">
-              <div class="doc__t">Features Deck (PPTX)</div>
-              <div class="doc__s">مزايا + معمارية + UX</div>
-            </a>
-
-            <a class="doc" href="./downloads/REFERENCE.html" target="_blank" rel="noreferrer">
-              <div class="doc__t">Reference (HTML)</div>
-              <div class="doc__s">المرجع الشامل داخل صفحة واحدة</div>
-            </a>
-
-            <a class="doc" href="./downloads/WORKSPACE_REQUIREMENTS.md" target="_blank" rel="noreferrer">
-              <div class="doc__t">Workspace Requirements (MD)</div>
-              <div class="doc__s">Server + DB + env vars + scanning</div>
-            </a>
-
-            <a class="doc" href="./downloads/BC_INTEGRATION_INPUTS.md" target="_blank" rel="noreferrer">
-              <div class="doc__t">BC Integration Inputs (MD)</div>
-              <div class="doc__s">المعلومات المطلوبة لتفعيل LIVE mode وربط BC</div>
-            </a>
+        <!-- UNAUTH -->
+        <section class="page" id="page-unauth" data-page="unauth" hidden>
+          <div class="card card--hero">
+            <div class="h1">غير مصرح</div>
+            <div class="sub">ليس لديك صلاحية لعرض هذه الصفحة. سجّل دخولك بحساب يملك الدور الصحيح.</div>
+            <div class="hr"></div>
+            <button class="btn btn--primary" id="btnGoLogin">العودة لتسجيل الدخول</button>
           </div>
-
-          <div class="hr"></div>
-          <div class="muted">ملاحظة: ضع ملفاتك الحقيقية داخل مجلد downloads أو غيّر الروابط وفق مسارات الريبو.</div>
-        </div>
-      </section>
-
-      <!-- UNAUTHORIZED -->
-      <section class="page" id="page-unauth" data-page="unauth" hidden>
-        <div class="card">
-          <h1 class="h1">غير مصرح</h1>
-          <p class="muted">لا يوجد Token صالح أو لا تملك دور الوصول للصفحة.</p>
-          <button class="btn btn--primary" id="btnGoLogin">العودة لتسجيل الدخول</button>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer">
-      <div class="muted">© GS1/UDI Enterprise Hub — Pilot UI shell</div>
-      <div class="muted mono" id="envHint"></div>
-    </footer>
+        </section>
+      </main>
+    </div>
   </div>
 
   <div class="toast" id="toast" hidden></div>
 
+  <!-- App logic -->
+  <script src="./app.js" defer></script>
+
+  <!-- Theme toggle (button text + meta theme-color update) -->
   <script>
     (function(){
       var key = 'gs1_ui_theme';
@@ -1026,7 +455,7 @@
         document.documentElement.dataset.theme = theme;
         try { localStorage.setItem(key, theme); } catch(e){}
         var meta = document.getElementById('metaThemeColor');
-        if (meta) meta.setAttribute('content', theme === 'dark' ? '#030712' : '#f0f4f8');
+        if (meta) meta.setAttribute('content', theme === 'dark' ? '#050a14' : '#f6f7fb');
         var btn = document.getElementById('btnTheme');
         if (btn) btn.textContent = (theme === 'dark') ? 'Light' : 'Dark';
       }
@@ -1036,23 +465,11 @@
         var current = document.documentElement.dataset.theme || 'light';
         apply(current);
         btn.addEventListener('click', function(){
-          var now = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-          apply(now);
+          var now = document.documentElement.dataset.theme || 'light';
+          apply(now === 'dark' ? 'light' : 'dark');
         });
-        // react to OS theme changes (only if user didn't pin a choice)
-        try{
-          var m = window.matchMedia('(prefers-color-scheme: dark)');
-          m.addEventListener('change', function(e){
-            var saved = localStorage.getItem(key);
-            if (saved) return;
-            apply(e.matches ? 'dark' : 'light');
-          });
-        }catch(e){}
       });
     })();
   </script>
-
-  <script src="./zxing-browser.min.js" defer></script>
-  <script src="./app.js" defer></script>
 </body>
 </html>
