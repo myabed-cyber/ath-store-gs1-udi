@@ -1006,9 +1006,7 @@ app.get("/api/cases/:case_id", auth, async (req, res) => {
   res.json(r.rows[0]);
 });
 
-});
-
-  app.patch("/api/cases/:case_id", auth, requireRole("admin"), async (req, res) => {
+app.patch("/api/cases/:case_id", auth, requireRole("admin"), async (req, res) => {
     const { case_id } = req.params;
     const { status, comment, resolution } = req.body || {};
 
