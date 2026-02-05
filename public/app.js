@@ -8,7 +8,7 @@
        3) same-origin default
 */
 (() => {
-  const BUILD = 'revamp-ui-2026-02-05';
+  const BUILD = 'revamp-ui-2026-02-05-fix1';
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -230,6 +230,8 @@
     input.addEventListener('input', () => render(input.value));
 
     root.addEventListener('click', (e) => {
+      // Click on backdrop closes (mobile friendly)
+      if (e.target === root) return close();
       const t = e.target;
       if (t && t.getAttribute && t.getAttribute('data-close') === '1') close();
     });
@@ -352,6 +354,13 @@ async function boot() {
     const page = (location.hash.replace('#/', '') || '').trim();
     const target = page || 'login';
 
+    // If user lands on any protected route (or /unauth) without a session, show login.
+    if (!state.token && target !== 'login') {
+      location.hash = '#/login';
+      showLogin();
+      return;
+    }
+
     // Leaving operator? stop camera.
     const current = $$('.page').find(p => !p.hidden)?.dataset?.page;
     if (current === 'operator' && target !== 'operator') stopScan('nav');
@@ -427,7 +436,14 @@ async function boot() {
 
   function requireRole(allowed, ok) {
     const role = (state.me && state.me.role) || '';
-    if (!state.token || !allowed.includes(role)) {
+    // No session → always send to login (not an "unauth" wall)
+    if (!state.token) {
+      location.hash = '#/login';
+      showLogin();
+      return;
+    }
+    // Session exists but role is insufficient → show unauth
+    if (!allowed.includes(role)) {
       location.hash = '#/unauth';
       showUnauth();
       return;

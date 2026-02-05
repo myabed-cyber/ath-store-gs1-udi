@@ -13,7 +13,7 @@
         var key = 'gs1_ui_theme';
         var saved = localStorage.getItem(key);
         var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var theme = saved || (prefersDark ? 'dark' : 'light');
+        var theme = saved || 'light'; // default to LIGHT for predictable UX
         document.documentElement.dataset.theme = theme;
         var meta = document.getElementById('metaThemeColor');
         if (meta) meta.setAttribute('content', theme === 'dark' ? '#050a14' : '#f6f7fb');
