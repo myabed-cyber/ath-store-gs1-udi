@@ -8,7 +8,7 @@
        3) same-origin default
 */
 (() => {
-  const BUILD = 'revamp-ui-2026-02-05-camera-fix';
+  const BUILD = 'revamp-ui-2026-02-05-zxing-fix';
   window.__BUILD__ = BUILD;
 
   const $ = (sel) => document.querySelector(sel);
@@ -841,16 +841,37 @@ async function boot() {
     state.scan.running = true;
 
     let Z = window.ZXingBrowser || window.ZXing;
+    
     // Try to load ZXing on-demand from same-origin vendor endpoint.
     if (!Z && typeof window.__ensureZXing === 'function') {
-      try { window.__ensureZXing(); } catch {}
-    }
-    // If ZXing is being loaded via the local loader, wait for it.
-    if (!Z && window.__ZXING_LOADING__ && typeof window.__ZXING_LOADING__.then === 'function') {
-      try { await window.__ZXING_LOADING__; } catch {}
+      try { 
+        await window.__ensureZXing(); 
+      } catch (loadErr) {
+        console.warn('ZXing load via __ensureZXing failed:', loadErr);
+      }
       Z = window.ZXingBrowser || window.ZXing;
     }
-    if (!Z) throw new Error('ZXing غير متاح حالياً. تأكد أن السيرفر يقدّم: /vendor/zxing-umd.min.js (Same-Origin). إذا المتصفح يدعم BarcodeDetector فسيعمل بدون ZXing.');
+    
+    // If ZXing is being loaded via the local loader, wait for it.
+    if (!Z && window.__ZXING_LOADING__ && typeof window.__ZXING_LOADING__.then === 'function') {
+      try { 
+        await window.__ZXING_LOADING__; 
+      } catch (loadErr) {
+        console.warn('ZXing load via __ZXING_LOADING__ failed:', loadErr);
+      }
+      Z = window.ZXingBrowser || window.ZXing;
+    }
+    
+    // Final check for ZXing availability
+    if (!Z) {
+      console.error('ZXing not available. Checking window objects:', {
+        ZXingBrowser: typeof window.ZXingBrowser,
+        ZXing: typeof window.ZXing
+      });
+      throw new Error('ZXing غير متاح حالياً. تأكد أن السيرفر يقدّم: /vendor/zxing-umd.min.js (Same-Origin). إذا المتصفح يدعم BarcodeDetector فسيعمل بدون ZXing.');
+    }
+    
+    console.log('ZXing loaded successfully:', Z);
 
     const v = $('#video');
     if (!v) throw new Error('Video element missing');
