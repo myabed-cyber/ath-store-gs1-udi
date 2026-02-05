@@ -677,8 +677,13 @@ input:hover:not(:focus), select:hover:not(:focus){
 .scanner video{
   width: 100%;
   height: 340px;
+  min-height: 200px;
   object-fit: cover;
   display: block;
+  background: #000;
+  /* Ensure video is visible on mobile */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .scanner__frame{
