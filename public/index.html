@@ -38,28 +38,35 @@
   <div class="shell">
     <!-- SIDEBAR -->
     <aside class="sidebar">
-      <div class="sb-brand">
+      <div class="sb-top">
+        <div class="sb-brand">
         <img class="sb-logo" src="./logo.png" alt="Logo"/>
         <div>
           <div class="sb-title">GS1/UDI Enterprise Hub</div>
           <div class="sb-sub">Warehouse Barcode & UDI</div>
         </div>
       </div>
+        <button class="sb-collapse" id="btnSidebar" title="Collapse / Expand" aria-label="Toggle sidebar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
 
       <nav class="sb-nav" aria-label="Primary">
         <a class="sb-link" href="#/operator" data-nav="operator" title="Operator">
           <svg class="sb-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <span>Operator</span>
+          <span data-i18n="nav.operator">Operator</span>
         </a>
 
         <a class="sb-link" href="#/admin" data-nav="admin" title="Admin">
           <svg class="sb-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l8 4v6c0 5-3.5 9-8 8-4.5 1-8-3-8-8V7l8-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span>Admin</span>
+          <span data-i18n="nav.admin">Admin</span>
         </a>
 
         <a class="sb-link" href="#/docs" data-nav="docs" title="Docs">
           <svg class="sb-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h8l4 4v14H7V3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M15 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <span>Docs</span>
+          <span data-i18n="nav.docs">Docs</span>
         </a>
       </nav>
 
@@ -76,12 +83,22 @@
           <img class="hdr-logo" src="./logo_header.png" alt="GS1/UDI"/>
           <div class="tb-title">
             <div class="name">GS1/UDI Enterprise Hub</div>
-            <div class="crumb" id="pageCrumb">Unified Operator + Admin Console</div>
+            <div class="crumb" id="pageCrumb" data-i18n="top.crumb">Unified Operator + Admin Console</div>
           </div>
         </div>
 
         <div class="tb-right">
           <img class="corp-logo" src="./assets/ath-medical-division.png" alt="Arabian Trade House — Medical Division" />
+          <div class="net-pill" id="netPill" title="API status">
+            <span class="dot" id="netDot"></span>
+            <span id="netText" class="mono">API</span>
+          </div>
+          <div class="net-pill" id="tbUser" title="User" hidden>
+            <span class="dot ok"></span>
+            <span id="tbUserText">—</span>
+          </div>
+          <button class="btn btn--ghost" id="btnCmdk" title="Commands (Ctrl+K)">⌘</button>
+          <button class="btn btn--ghost" id="btnLang" title="Language">EN</button>
           <button class="btn btn--ghost" id="btnTheme" title="تبديل الوضع">Theme</button>
           <button class="btn btn--ghost" id="btnHealth" title="Health Check">Health</button>
           <button class="btn btn--ghost" id="btnLogout" hidden>Logout</button>
@@ -97,7 +114,7 @@
                 <div class="hero-top">
                   <img src="./logo.png" alt="GS1/UDI"/>
                   <div>
-                    <h1>تسجيل الدخول</h1>
+                    <h1 data-i18n="login.title">تسجيل الدخول</h1>
                     <p>واجهة واحدة للمشغّل والإدارة — منظمة، واضحة، وقابلة للتوسع.</p>
                   </div>
                 </div>
@@ -120,7 +137,7 @@
             <div class="card card--hero">
               <div class="page-head">
                 <div>
-                  <div class="h1">بيانات الدخول</div>
+                  <div class="h1" data-i18n="login.credentials">بيانات الدخول</div>
                   <div class="sub">استخدم حساب Operator أو Admin حسب الصلاحيات.</div>
                 </div>
               </div>
@@ -169,7 +186,7 @@
         <section class="page" id="page-operator" data-page="operator" hidden>
           <div class="page-head">
             <div>
-              <h1 class="h1">Operator Console</h1>
+              <h1 class="h1" data-i18n="operator.title">Operator Console</h1>
               <div class="sub">مسح الباركود + قرار (PASS/WARN/BLOCK) + إنشاء Case عند الحاجة.</div>
             </div>
             <div class="badge" id="authBadge">—</div>
@@ -288,7 +305,7 @@
         <section class="page" id="page-admin" data-page="admin" hidden>
           <div class="page-head">
             <div>
-              <h1 class="h1">Admin Console</h1>
+              <h1 class="h1" data-i18n="admin.title">Admin Console</h1>
               <div class="sub">لوحة مؤشرات + Inbox للحالات + إدارة المستخدمين + سجل تدقيق.</div>
             </div>
             <div class="row">
@@ -416,7 +433,7 @@
         <section class="page" id="page-docs" data-page="docs" hidden>
           <div class="page-head">
             <div>
-              <h1 class="h1">Docs</h1>
+              <h1 class="h1" data-i18n="docs.title">Docs</h1>
               <div class="sub">روابط التشغيل والمرجعيات (Runbook / Reference) داخل المجلد.</div>
             </div>
           </div>
@@ -452,6 +469,30 @@
           </div>
         </section>
       </main>
+    </div>
+  </div>
+
+
+  <!-- Modal -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal__backdrop" data-close="1"></div>
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal__head">
+        <div class="modal__title" id="modalTitle">—</div>
+        <button class="btn btn--ghost" id="modalClose" aria-label="Close">✕</button>
+      </div>
+      <div class="modal__body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Command Palette -->
+  <div class="cmdk" id="cmdk" hidden>
+    <div class="modal__backdrop" data-close="1"></div>
+    <div class="cmdk__panel" role="dialog" aria-modal="true" aria-label="Commands">
+      <div class="cmdk__top">
+        <input class="cmdk__input" id="cmdkInput" placeholder="اكتب أمر… (Scan / Cases / Health)" />
+      </div>
+      <div class="cmdk__list" id="cmdkList"></div>
     </div>
   </div>
 

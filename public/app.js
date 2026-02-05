@@ -8,7 +8,7 @@
        3) same-origin default
 */
 (() => {
-  const BUILD = 'pro-ui-2026-02-04';
+  const BUILD = 'revamp-ui-2026-02-05';
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -16,6 +16,7 @@
   const state = {
     token: localStorage.getItem('gs1hub.token') || '',
     me: safeJson(localStorage.getItem('gs1hub.me')) || null,
+    lang: localStorage.getItem('gs1hub.lang') || (document.documentElement.getAttribute('lang') || 'ar'),
     apiBase: resolveApiBase(),
     lastScan: null,
     queue: safeJson(localStorage.getItem('gs1hub.queue')) || [],
@@ -34,6 +35,242 @@
       lastAt: 0,
     },
   };
+
+  
+  // ---- REVAMP UI helpers (v4)
+  const I18N = {
+    ar: {
+      'nav.operator': 'المشغل',
+      'nav.admin': 'الإدارة',
+      'nav.docs': 'المستندات',
+      'top.crumb': 'واجهة موحدة للمشغل والإدارة',
+      'login.title': 'تسجيل الدخول',
+      'login.credentials': 'بيانات الدخول',
+      'operator.title': 'واجهة المشغل',
+      'admin.title': 'لوحة الإدارة',
+      'docs.title': 'المستندات',
+      'crumb.login': 'تسجيل الدخول',
+      'crumb.operator': 'واجهة المشغل',
+      'crumb.admin': 'لوحة الإدارة',
+      'crumb.docs': 'المستندات',
+      'crumb.unauth': 'غير مصرح',
+      'cmdk.placeholder': 'اكتب أمر… (Scan / Cases / Health)',
+      'lang.button': 'EN',
+    },
+    en: {
+      'nav.operator': 'Operator',
+      'nav.admin': 'Admin',
+      'nav.docs': 'Docs',
+      'top.crumb': 'Unified Operator + Admin Console',
+      'login.title': 'Sign in',
+      'login.credentials': 'Credentials',
+      'operator.title': 'Operator Console',
+      'admin.title': 'Admin Console',
+      'docs.title': 'Docs',
+      'crumb.login': 'Sign in',
+      'crumb.operator': 'Operator Console',
+      'crumb.admin': 'Admin Console',
+      'crumb.docs': 'Docs',
+      'crumb.unauth': 'Access denied',
+      'cmdk.placeholder': 'Type a command… (Scan / Cases / Health)',
+      'lang.button': 'ع',
+    },
+  };
+
+  function t(key) {
+    const lang = state.lang || 'ar';
+    return (I18N[lang] && I18N[lang][key]) || (I18N.ar && I18N.ar[key]) || key;
+  }
+
+  function applyLang(lang) {
+    state.lang = (lang === 'en') ? 'en' : 'ar';
+    try { localStorage.setItem('gs1hub.lang', state.lang); } catch {}
+    document.documentElement.setAttribute('lang', state.lang);
+    document.documentElement.setAttribute('dir', state.lang === 'en' ? 'ltr' : 'rtl');
+
+    // swap text for tagged elements
+    $$('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (!key) return;
+      el.textContent = t(key);
+    });
+
+    const btn = $('#btnLang');
+    if (btn) btn.textContent = t('lang.button');
+
+    const cmdInput = $('#cmdkInput');
+    if (cmdInput) cmdInput.setAttribute('placeholder', t('cmdk.placeholder'));
+  }
+
+  function initShell() {
+    const shell = document.querySelector('.shell');
+    if (!shell) return;
+    const key = 'gs1hub.sidebar';
+    const saved = localStorage.getItem(key) || '';
+    if (saved === 'collapsed') shell.classList.add('sb-collapsed');
+
+    const btn = $('#btnSidebar');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        shell.classList.toggle('sb-collapsed');
+        try {
+          localStorage.setItem(key, shell.classList.contains('sb-collapsed') ? 'collapsed' : 'expanded');
+        } catch {}
+      });
+    }
+
+    const langBtn = $('#btnLang');
+    if (langBtn) {
+      langBtn.addEventListener('click', () => applyLang(state.lang === 'ar' ? 'en' : 'ar'));
+    }
+  }
+
+  // Modal
+  function initModal() {
+    const modal = $('#modal');
+    if (!modal) return;
+
+    function close() { modal.hidden = true; $('#modalBody') && ($('#modalBody').innerHTML = ''); }
+
+    modal.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t && t.getAttribute && t.getAttribute('data-close') === '1') close();
+    });
+
+    const closeBtn = $('#modalClose');
+    if (closeBtn) closeBtn.addEventListener('click', close);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) close();
+    });
+
+    window.__showModal = (title, html) => {
+      const mt = $('#modalTitle');
+      const mb = $('#modalBody');
+      if (mt) mt.textContent = title || '—';
+      if (mb) mb.innerHTML = html || '';
+      modal.hidden = false;
+    };
+
+    window.__closeModal = close;
+  }
+
+  // Command palette (Ctrl+K)
+  function initCmdk() {
+    const root = $('#cmdk');
+    const input = $('#cmdkInput');
+    const list = $('#cmdkList');
+    const btn = $('#btnCmdk');
+    if (!root || !input || !list) return;
+
+    const commands = [
+      { name: () => (state.lang === 'ar' ? 'الانتقال: المشغل' : 'Go: Operator'), k: 'G O', run: () => (location.hash = '#/operator') },
+      { name: () => (state.lang === 'ar' ? 'الانتقال: الإدارة' : 'Go: Admin'), k: 'G A', run: () => (location.hash = '#/admin') },
+      { name: () => (state.lang === 'ar' ? 'الانتقال: المستندات' : 'Go: Docs'), k: 'G D', run: () => (location.hash = '#/docs') },
+      { name: () => (state.lang === 'ar' ? 'فحص الاتصال (Health)' : 'Health check'), k: 'H', run: () => $('#btnHealth')?.click() },
+      { name: () => (state.lang === 'ar' ? 'بدء المسح' : 'Start scan'), k: 'S', run: () => $('#btnStart')?.click() },
+      { name: () => (state.lang === 'ar' ? 'إيقاف المسح' : 'Stop scan'), k: 'X', run: () => $('#btnStop')?.click() },
+      { name: () => (state.lang === 'ar' ? 'تحديث الحالات' : 'Refresh cases'), k: 'R C', run: () => $('#btnRefreshCases')?.click() },
+      { name: () => (state.lang === 'ar' ? 'تحديث اللوحة' : 'Refresh dashboard'), k: 'R D', run: () => $('#btnRefreshDash')?.click() },
+    ];
+
+    function close() {
+      root.hidden = true;
+      input.value = '';
+      render('');
+    }
+
+    function open() {
+      root.hidden = false;
+      input.focus();
+      input.select();
+      render('');
+    }
+
+    function render(q) {
+      const query = (q || '').trim().toLowerCase();
+      const items = commands
+        .map(c => ({ c, title: c.name() }))
+        .filter(x => !query || x.title.toLowerCase().includes(query))
+        .slice(0, 12);
+
+      if (!items.length) {
+        list.innerHTML = '<div class="muted" style="padding:12px; font-weight:900;">No matches</div>';
+        return;
+      }
+
+      list.innerHTML = items.map((x, i) => `
+        <div class="cmdk__item" data-idx="${i}">
+          <div>${escapeHtml(x.title)}</div>
+          <div class="cmdk__k">${escapeHtml(x.c.k || '')}</div>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.cmdk__item').forEach(el => {
+        el.addEventListener('click', () => {
+          const idx = Number(el.getAttribute('data-idx') || '0');
+          const cmd = items[idx]?.c;
+          close();
+          try { cmd && cmd.run(); } catch (e) {}
+        });
+      });
+
+      // Enter runs first
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const cmd = items[0]?.c;
+          close();
+          try { cmd && cmd.run(); } catch (e) {}
+        }
+        if (e.key === 'Escape') { e.preventDefault(); close(); }
+      };
+    }
+
+    input.addEventListener('input', () => render(input.value));
+
+    root.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t && t.getAttribute && t.getAttribute('data-close') === '1') close();
+    });
+
+    btn && btn.addEventListener('click', open);
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'k')) {
+        e.preventDefault();
+        root.hidden ? open() : close();
+      }
+      if (e.key === 'Escape' && !root.hidden) close();
+    });
+  }
+
+  // Net status indicator
+  function initNetPill() {
+    const dot = $('#netDot');
+    const text = $('#netText');
+    if (!dot || !text) return;
+
+    function set(ok, label) {
+      dot.classList.remove('ok', 'bad');
+      dot.classList.add(ok ? 'ok' : 'bad');
+      text.textContent = label || (ok ? 'OK' : 'DOWN');
+    }
+
+    async function ping() {
+      try {
+        await apiGet('/api/health');
+        set(true, 'OK');
+      } catch (e) {
+        set(false, 'DOWN');
+      }
+    }
+
+    set(false, '…');
+    setTimeout(ping, 600);
+    setInterval(() => { if (!document.hidden) ping(); }, 45000);
+  }
+
 
   // ---- Router
   const routes = {
@@ -80,6 +317,14 @@
 
 async function boot() {
     $('#envHint').textContent = `API=${state.apiBase || '(same-origin)'} • build=${BUILD}`;
+
+    // v4 shell UX
+    initShell();
+    initModal();
+    initCmdk();
+    initNetPill();
+    applyLang(state.lang);
+
     await hydrateAuth();
     applyRBACNav();
     updateSessionBox();
@@ -123,11 +368,11 @@ async function boot() {
     const crumb = $('#pageCrumb');
     if (crumb) {
       const map = {
-        login: 'Sign in',
-        operator: 'Operator Console',
-        admin: 'Admin Console',
-        docs: 'Docs',
-        unauth: 'Access denied',
+        login: t('crumb.login'),
+        operator: t('crumb.operator'),
+        admin: t('crumb.admin'),
+        docs: t('crumb.docs'),
+        unauth: t('crumb.unauth'),
       };
       crumb.textContent = map[name] || 'GS1/UDI Enterprise Hub';
     }
@@ -209,11 +454,20 @@ async function boot() {
 
     if (!hasSession) {
       box.hidden = true;
+      const tb = $('#tbUser');
+      if (tb) tb.hidden = true;
       return;
     }
 
     label.textContent = `${user} • ${role}`;
     box.hidden = false;
+
+    const tb = $('#tbUser');
+    const tbt = $('#tbUserText');
+    if (tb && tbt) {
+      tb.hidden = false;
+      tbt.textContent = `${user} • ${role}`;
+    }
 
     // Safety: if buttons exist but weren't bound yet, keep them enabled
     if (btnC) btnC.disabled = false;
@@ -825,7 +1079,9 @@ async function boot() {
 
   async function openCase(id) {
     const r = await apiGet('/api/cases/' + encodeURIComponent(id));
-    alert(JSON.stringify(r, null, 2));
+    const out = `<pre class="pre">${escapeHtml(JSON.stringify(r, null, 2))}</pre>`;
+    if (window.__showModal) window.__showModal(`Case #${escapeHtml(String(id))}`, out);
+    else alert(JSON.stringify(r, null, 2));
   }
 
   async function refreshUsers() {
