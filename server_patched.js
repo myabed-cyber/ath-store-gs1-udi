@@ -303,64 +303,131 @@ $$;
 }
 
 async function seed() {
-  try {
-    if (!pool) return;
-
-    // In production, seeding is OFF by default for safety.
-    // Enable explicitly by setting SEED_MODE=once or SEED_MODE=upsert.
-    if (SEED_MODE === "off") {
-      console.log("[SEED] Skipped (SEED_MODE=off).");
-      return;
-    }
-
-    // Ensure schema first (defensive; harmless if already called)
-    // await ensureSchema();
-
-    const adminUser = SEED_ADMIN_USER;
-    const adminPass = SEED_ADMIN_PASS;
-    const operatorUser = SEED_OPERATOR_USER;
-    const operatorPass = SEED_OPERATOR_PASS;
-
-    if (!adminUser || !adminPass) {
-      console.warn("[SEED] Missing SEED_ADMIN_USER or SEED_ADMIN_PASS. Skipping admin seed.");
-    }
-    if (!operatorUser || !operatorPass) {
-      console.warn("[SEED] Missing SEED_OPERATOR_USER or SEED_OPERATOR_PASS. Skipping operator seed.");
-    }
-
-    // Legacy behavior: only seed if users table is empty
-    if (SEED_MODE === "once") {
-      const { rows } = await q("SELECT COUNT(*)::int AS c FROM users");
-      if (rows?.[0]?.c > 0) {
-        console.log("[SEED] Skipped (SEED_MODE=once and users already exist).");
-        return;
-      }
-    }
-
-    // Upsert behavior: update password/role for the same usernames.
-    // This solves the common issue where the service runs once before SEED_* are set.
-    const upsertUser = async (username, plainPass, role) => {
-      if (!username || !plainPass) return;
-      const hash = bcrypt.hashSync(plainPass, 10);
-      await q(
-        `INSERT INTO users (id, username, password_hash, role)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (username)
-         DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role`,
-        [uuid(), username, hash, role]
-      );
-    };
-
-    await upsertUser(adminUser, adminPass, "admin");
-    await upsertUser(operatorUser, operatorPass, "operator");
-
-    console.log(`[SEED] Done (SEED_MODE=${SEED_MODE}).`);
-  } catch (e) {
-    console.warn("[SEED] failed:", e?.message || e);
+  const mode = String(process.env.SEED_MODE || "once").toLowerCase(); // once | upsert | reset | off
+  if (mode === "off") {
+    console.log("[SEED] SEED_MODE=off -> skip");
+    return;
   }
+
+  const strict = String(process.env.SEED_STRICT_BOOTSTRAP || "").toLowerCase() === "true";
+  const force = String(process.env.SEED_FORCE || "").toLowerCase() === "true";
+  const seedVersion = String(process.env.SEED_VERSION || "1");
+
+  const adminUser = process.env.SEED_ADMIN_USER || "admin";
+  const adminPass = process.env.SEED_ADMIN_PASS;
+  const operatorUser = process.env.SEED_OPERATOR_USER || "testuser";
+  const operatorPass = process.env.SEED_OPERATOR_PASS;
+
+  if (!adminPass || !operatorPass) {
+    const msg =
+      "[SEED] Missing SEED_ADMIN_PASS or SEED_OPERATOR_PASS. " +
+      "Set them in Northflank Secrets. " +
+      (strict ? "SEED_STRICT_BOOTSTRAP=true -> refusing to start." : "Skipping seed for now.");
+    if (strict) throw new Error(msg);
+    console.warn(msg);
+    return;
+  }
+
+  // Ensure seed metadata table exists (so we can make seeding idempotent and controllable).
+  await q(`
+    CREATE TABLE IF NOT EXISTS seed_meta (
+      id INT PRIMARY KEY DEFAULT 1,
+      seed_version TEXT NOT NULL,
+      seed_hash TEXT NOT NULL,
+      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  // Hash includes the seed inputs, so changing SEED_* values can trigger a re-seed in upsert/reset modes.
+  const seedHash = crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify({
+        adminUser,
+        adminPass,
+        operatorUser,
+        operatorPass,
+        seedVersion,
+      })
+    )
+    .digest("hex");
+
+  const metaRes = await q("SELECT seed_version, seed_hash, applied_at FROM seed_meta WHERE id=1");
+  const meta = metaRes.rows[0];
+
+  // Decide whether to run seed:
+  // - first time (no meta row): run
+  // - SEED_FORCE=true: run
+  // - version changed: run (any mode except off)
+  // - hash changed: run only for upsert/reset
+  let shouldRun = force || !meta;
+
+  if (!shouldRun && meta) {
+    if (meta.seed_version !== seedVersion) shouldRun = true;
+    else if (meta.seed_hash !== seedHash && (mode === "upsert" || mode === "reset")) shouldRun = true;
+  }
+
+  // In "once" mode, never re-run once meta exists (even if values change).
+  if (mode === "once" && meta && !force) {
+    shouldRun = false;
+  }
+
+  if (!shouldRun) {
+    console.log(`[SEED] Up-to-date (mode=${mode}, version=${meta?.seed_version}) -> skip`);
+    return;
+  }
+
+  console.log(`[SEED] Running seed (mode=${mode}, version=${seedVersion}, force=${force})...`);
+
+  const adminHash = bcrypt.hashSync(String(adminPass), 10);
+  const operatorHash = bcrypt.hashSync(String(operatorPass), 10);
+
+
+  if (mode === "reset") {
+    // WARNING: destructive. Use only in dev / controlled environments.
+    await q("DELETE FROM users");
+  }
+
+  // Upsert users (safe + repeatable).
+  await q(
+    `
+    INSERT INTO users (id, username, password_hash, role, is_active)
+    VALUES (gen_random_uuid(), $1, $2, $3, true)
+    ON CONFLICT (username) DO UPDATE
+      SET password_hash = EXCLUDED.password_hash,
+          role = EXCLUDED.role,
+          is_active = true
+    `,
+    [adminUser, adminHash, "admin"]
+  );
+
+  await q(
+    `
+    INSERT INTO users (id, username, password_hash, role, is_active)
+    VALUES (gen_random_uuid(), $1, $2, $3, true)
+    ON CONFLICT (username) DO UPDATE
+      SET password_hash = EXCLUDED.password_hash,
+          role = EXCLUDED.role,
+          is_active = true
+    `,
+    [operatorUser, operatorHash, "operator"]
+  );
+
+  // Record seed application.
+  await q(
+    `
+    INSERT INTO seed_meta (id, seed_version, seed_hash, applied_at)
+    VALUES (1, $1, $2, NOW())
+    ON CONFLICT (id) DO UPDATE
+      SET seed_version = EXCLUDED.seed_version,
+          seed_hash = EXCLUDED.seed_hash,
+          applied_at = NOW()
+    `,
+    [seedVersion, seedHash]
+  );
+
+  console.log("[SEED] Done.");
 }
-
-
 // ---------------- Auth ----------------
 function signToken(user) {
   return jwt.sign({ sub: user.id, username: user.username, role: user.role }, JWT_SECRET_EFFECTIVE, { expiresIn: "8h" });
@@ -425,10 +492,19 @@ export const GS = String.fromCharCode(29);
 export function normalizeInput(raw) {
   if (!raw) return "";
   let s = String(raw).trim();
+
+  // Strip common symbology identifiers (e.g., ]C1 for GS1-128, ]d2 for GS1 DataMatrix)
+  s = s.replace(/^\](C1|c1|d2|D2|Q3|q3|e0|E0)\s*/g, "");
+
+  // Remove whitespace/newlines (scanners sometimes inject them)
+  s = s.replace(/\s+/g, "");
+
   // allow (01)(17) styles
   s = s.replace(/\)\s*\(/g, "").replace(/[()]/g, "");
-  // convert literal "\u001d"
+
+  // convert literal "\u001d" into GS (ASCII 29)
   s = s.replace(/\\u001[dD]/g, GS);
+
   return s;
 }
 
@@ -488,12 +564,16 @@ export function parseGs1(norm, missingGsBehavior = "BLOCK") {
   const isKnownAI = (ai) => KNOWN.has(ai);
 
   // If it's pure digits, treat as GTIN only if allowed by policy (handled in decide)
+  // Numeric-only inputs can be a plain GTIN (from keyboard wedge scanners / manual entry).
+  // Treat as GTIN only for typical GTIN lengths, otherwise continue parsing as-is.
   const isAllDigits = /^\d+$/.test(norm);
+  const numericAsGtin = isAllDigits && ([8, 12, 13, 14].includes(norm.length));
+
 
   while (i < norm.length) {
     const ai2 = norm.slice(i, i + 2);
 
-    if (isAllDigits) {
+    if (numericAsGtin) {
       segments.push({ ai: "01", value: gtinTo14(norm), source: "NUMERIC_AS_GTIN" });
       break;
     }
@@ -727,6 +807,79 @@ function parseRateLimit(req, res, next) {
   return next();
 }
 
+
+// ---------------- ZXing (same-origin vendor script) ----------------
+// Goal: the browser NEVER needs to reach a public CDN. It only loads ZXing from:
+//   GET /vendor/zxing-umd.min.js   (same-origin)
+// The server will fetch + cache the UMD bundle from multiple sources (first success wins).
+const ZXING_UMD_URLS = [
+  "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.1/umd/index.min.js",
+  "https://unpkg.com/@zxing/browser@0.1.1/umd/index.min.js",
+];
+
+let _ZXING_CACHE = null;
+let _ZXING_ETAG = null;
+let _ZXING_FETCHING = null;
+
+async function fetchTextWithTimeout(url, ms = 9000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": "gs1hub-server" } });
+    if (!r.ok) throw new Error(`ZXing fetch failed: ${r.status} ${r.statusText}`);
+    return await r.text();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function getZXingUmd() {
+  if (_ZXING_CACHE) return { code: _ZXING_CACHE, etag: _ZXING_ETAG };
+  if (_ZXING_FETCHING) return _ZXING_FETCHING;
+
+  _ZXING_FETCHING = (async () => {
+    let lastErr = null;
+    // Prefer a bundled local copy if you place it at: public/vendor/zxing-umd.min.js
+    // This makes the app work even in restricted egress environments.
+    try {
+      const localPath = path.join(__dirname, "public", "vendor", "zxing-umd.min.js");
+      if (fs.existsSync(localPath)) {
+        const code = fs.readFileSync(localPath, "utf8");
+        if (code && code.length >= 50_000) {
+          _ZXING_CACHE = code;
+          _ZXING_ETAG = sha256Hex(code);
+          console.log("[ZXing] using local vendor file:", localPath);
+          return { code: _ZXING_CACHE, etag: _ZXING_ETAG };
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    for (const url of ZXING_UMD_URLS) {
+      try {
+        const code = await fetchTextWithTimeout(url);
+        // Sanity check: real bundle is large
+        if (!code || code.length < 50_000) throw new Error("ZXing bundle too small / invalid");
+        _ZXING_CACHE = code;
+        _ZXING_ETAG = sha256Hex(code);
+        console.log("[ZXing] cached UMD from:", url);
+        return { code: _ZXING_CACHE, etag: _ZXING_ETAG };
+      } catch (e) {
+        lastErr = e;
+        console.warn("[ZXing] source failed:", url, e?.message || e);
+      }
+    }
+    throw lastErr || new Error("ZXing fetch failed from all sources");
+  })();
+
+  try {
+    return await _ZXING_FETCHING;
+  } finally {
+    _ZXING_FETCHING = null;
+  }
+}
+
 export function createApp() {
   const app = express();
 app.disable("x-powered-by");
@@ -764,6 +917,24 @@ app.use((req, res, next) => {
   app.get("/api/health", (req, res) =>
     res.json({ status: "ok", time: nowIso(), bc_mode: BC_MODE, has_db: !!DATABASE_URL })
   );
+
+  // Serve ZXing bundle from same-origin (client never hits a CDN).
+  app.get("/vendor/zxing-umd.min.js", async (req, res) => {
+    try {
+      const { code, etag } = await getZXingUmd();
+      if (req.headers["if-none-match"] === etag) return res.status(304).end();
+      res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("ETag", etag);
+      return res.send(code);
+    } catch (e) {
+      const msg = (e?.message || String(e)).replace(/\n/g, " ");
+      res.status(503);
+      res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+      return res.send(`/* ZXing unavailable (server could not fetch it): ${msg} */\n`);
+    }
+  });
+
 
   app.get("/api/integration/status", auth, requireRole("admin"), async (req, res) => {
     res.json({

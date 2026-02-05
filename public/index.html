@@ -26,9 +26,6 @@
   <link rel="icon" href="./assets/logo.svg" type="image/svg+xml"/>
 
   <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Pro UI -->
   <link rel="stylesheet" href="./ui.css">
@@ -93,15 +90,16 @@
             <span class="dot" id="netDot"></span>
             <span id="netText" class="mono">API</span>
           </div>
-                    <div class="net-pill user-pill" id="tbUser" title="User" hidden>
-            <span class="user-ic" aria-hidden="true">👤</span>
+          <div class="net-pill" id="tbUser" title="User" hidden>
+            <svg class="user-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+              <path d="M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M4.5 20.5c1.8-4 13.2-4 15 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
             <span id="tbUserText">—</span>
           </div>
-          <button class="btn btn--ghost" id="btnCmdk" title="Commands (Ctrl+K)">⌘</button>
-          <button class="btn btn--ghost" id="btnLang" title="Language">EN</button>
+<button class="btn btn--ghost" id="btnLang" title="Language">EN</button>
           <button class="btn btn--ghost" id="btnTheme" title="تبديل الوضع">Theme</button>
-          <button class="btn btn--ghost" id="btnHealth" title="Health Check">Health</button>
-          <button class="btn btn--ghost" id="btnLogout" hidden>Logout</button>
+<button class="btn btn--ghost" id="btnLogout" hidden>Logout</button>
         </div>
       </header>
 
@@ -121,17 +119,10 @@
 
                 <div class="hr"></div>
 
-                <ul>
-                  <li>Scanner UX ثابت + واضح (PASS/WARN/BLOCK)</li>
-                  <li>Cases Inbox للإدارة</li>
-                  <li>GTIN Mapping + Audit Log</li>
-                  <li>Ready for multi-tenant expansion</li>
-                </ul>
+                <p class="muted" style="margin:10px 0 0; font-weight:700;">واجهة مركّزة للمسح والتحقق وإنشاء الحالات عند الحاجة.</p>
               </div>
 
-              <div class="muted" style="font-weight:800;">
-                ملاحظة: المصادقة JWT (Pilot) ويمكن استبدالها لاحقًا بـ SSO.
-              </div>
+              
             </div>
 
             <div class="card card--hero">
@@ -175,9 +166,7 @@
               </form>
 
               <div class="hr"></div>
-              <div class="muted" style="font-weight:800;">
-                نصيحة: بعد تسجيل الدخول — انتقل إلى Operator للمسح أو Admin للوحة الإدارة.
-              </div>
+              
             </div>
           </div>
         </section>
@@ -275,7 +264,13 @@
                 <div class="fields" id="fieldsGrid"></div>
               </div>
 
-              <div class="hr"></div>
+              
+              <details class="fold" id="opCommit">
+                <summary>Operations (Commit)</summary>
+              <details class="fold" id="opCommit">
+                <summary>Operations (Commit)</summary>
+
+<div class="hr"></div>
 
               <div class="row">
                 <button class="btn btn--primary" id="btnCommitReceipt">Commit Receipt</button>
@@ -286,7 +281,14 @@
                 <pre class="pre" id="commitOut">{ "status": "—" }</pre>
               </div>
 
-              <div class="hr"></div>
+              
+              
+              </details>
+</details>
+              <details class="fold" id="opMap">
+                <summary>GTIN Mapping (Advanced)</summary>
+
+<div class="hr"></div>
 
               <div class="h2">GTIN Mapping</div>
               <div class="sub">ربط GTIN ببيانات العنصر (Pilot). يدعم التوسع إلى Catalog Sync.</div>
@@ -297,7 +299,9 @@
                 <button class="btn" id="btnUpsertMap">Upsert</button>
               </div>
               <div id="mapAlert" class="alert" hidden></div>
-            </div>
+            
+              </details>
+</div>
           </div>
         </section>
 
@@ -341,6 +345,9 @@
                   <div class="kv__v" id="kpiBlock">—</div>
                 </div>
               </div>
+              <details class="fold" id="adAudit">
+                <summary>Audit Viewer (Advanced)</summary>
+
 
               <div class="hr"></div>
 
@@ -363,7 +370,9 @@
               <div style="margin-top:10px;">
                 <pre class="pre" id="auditOut">اختر حدث لعرض الـ payload.</pre>
               </div>
-            </div>
+            
+              </details>
+</div>
 
             <div class="card">
               <div class="h2">Cases Inbox</div>
@@ -395,6 +404,9 @@
                   <div class="muted">جارٍ التحميل…</div>
                 </div>
               </div>
+              <details class="fold" id="adUsers">
+                <summary>Users & Roles (Advanced)</summary>
+
 
               <div class="hr"></div>
 
@@ -423,7 +435,9 @@
                     <div class="muted">اختر مستخدم لتعديل بياناته.</div>
                   </div>
                 </div>
-              </div>
+              
+              </details>
+</div>
 
             </div>
           </div>
@@ -455,7 +469,7 @@
             </div>
 
             <div class="hr"></div>
-            <div class="muted" style="font-weight:800;">يمكنك إضافة ملفات إضافية داخل public/downloads وربطها هنا.</div>
+            
           </div>
         </section>
 
@@ -485,24 +499,34 @@
     </div>
   </div>
 
-  <!-- Command Palette -->
-  <div class="cmdk" id="cmdk" hidden>
-    <div class="modal__backdrop" data-close="1"></div>
-    <div class="cmdk__panel" role="dialog" aria-modal="true" aria-label="Commands">
-      <div class="cmdk__top">
-        <input class="cmdk__input" id="cmdkInput" placeholder="اكتب أمر… (Scan / Cases / Health)" />
-      </div>
-      <div class="cmdk__list" id="cmdkList"></div>
-    </div>
-  </div>
-
   <div class="toast" id="toast" hidden></div>
+<!-- App logic -->
+  
+  <!-- ZXing loader (same-origin, offline-capable) -->
+  <script>
+    // Loads ZXing on-demand from the server (same-origin).
+    // The browser NEVER hits a CDN directly.
+    (function(){
+      function load() {
+        if (window.ZXingBrowser || window.ZXing) return Promise.resolve();
+        if (window.__ZXING_LOADING__) return window.__ZXING_LOADING__;
+        window.__ZXING_LOADING__ = new Promise(function(resolve, reject){
+          try{
+            var s = document.createElement('script');
+            s.src = '/vendor/zxing-umd.min.js';
+            s.async = true;
+            s.onload = function(){ resolve(); };
+            s.onerror = function(){ reject(new Error('ZXing script failed to load')); };
+            document.head.appendChild(s);
+          } catch(e){ reject(e); }
+        });
+        return window.__ZXING_LOADING__;
+      }
+      window.__ensureZXing = function(){ return load(); };
+    })();
+  </script>
 
-  <!-- ZXing loader (fallback scanner engine) -->
-  <script src="./zxing-browser.min.js" defer></script>
-
-  <!-- App logic -->
-  <script src="./app.js" defer></script>
+<script src="./app.js" defer></script>
 
   <!-- Theme toggle (button text + meta theme-color update) -->
   <script>

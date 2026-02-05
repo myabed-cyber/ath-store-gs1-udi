@@ -492,10 +492,19 @@ export const GS = String.fromCharCode(29);
 export function normalizeInput(raw) {
   if (!raw) return "";
   let s = String(raw).trim();
+
+  // Strip common symbology identifiers (e.g., ]C1 for GS1-128, ]d2 for GS1 DataMatrix)
+  s = s.replace(/^\](C1|c1|d2|D2|Q3|q3|e0|E0)\s*/g, "");
+
+  // Remove whitespace/newlines (scanners sometimes inject them)
+  s = s.replace(/\s+/g, "");
+
   // allow (01)(17) styles
   s = s.replace(/\)\s*\(/g, "").replace(/[()]/g, "");
-  // convert literal "\u001d"
+
+  // convert literal "\u001d" into GS (ASCII 29)
   s = s.replace(/\\u001[dD]/g, GS);
+
   return s;
 }
 
@@ -555,12 +564,16 @@ export function parseGs1(norm, missingGsBehavior = "BLOCK") {
   const isKnownAI = (ai) => KNOWN.has(ai);
 
   // If it's pure digits, treat as GTIN only if allowed by policy (handled in decide)
+  // Numeric-only inputs can be a plain GTIN (from keyboard wedge scanners / manual entry).
+  // Treat as GTIN only for typical GTIN lengths, otherwise continue parsing as-is.
   const isAllDigits = /^\d+$/.test(norm);
+  const numericAsGtin = isAllDigits && ([8, 12, 13, 14].includes(norm.length));
+
 
   while (i < norm.length) {
     const ai2 = norm.slice(i, i + 2);
 
-    if (isAllDigits) {
+    if (numericAsGtin) {
       segments.push({ ai: "01", value: gtinTo14(norm), source: "NUMERIC_AS_GTIN" });
       break;
     }
@@ -794,6 +807,103 @@ function parseRateLimit(req, res, next) {
   return next();
 }
 
+
+// ---------------- ZXing (same-origin vendor script) ----------------
+// Goal: the browser NEVER needs to reach a public CDN. It only loads ZXing from:
+//   GET /vendor/zxing-umd.min.js   (same-origin)
+// The server will fetch + cache the UMD bundle from multiple sources (first success wins).
+const ZXING_UMD_URLS = [
+  // Correct UMD bundle names (zxing-browser.min.js)
+  "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js",
+  "https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js",
+  // Fallback to older known-good version
+  "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.1/umd/zxing-browser.min.js",
+  "https://unpkg.com/@zxing/browser@0.1.1/umd/zxing-browser.min.js",
+];
+
+let _ZXING_CACHE = null;
+let _ZXING_ETAG = null;
+let _ZXING_FETCHING = null;
+
+async function fetchTextWithTimeout(url, ms = 9000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": "gs1hub-server" } });
+    if (!r.ok) throw new Error(`ZXing fetch failed: ${r.status} ${r.statusText}`);
+    return await r.text();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function getZXingUmd() {
+  if (_ZXING_CACHE) return { code: _ZXING_CACHE, etag: _ZXING_ETAG };
+  if (_ZXING_FETCHING) return _ZXING_FETCHING;
+
+  _ZXING_FETCHING = (async () => {
+    let lastErr = null;
+    // Prefer a bundled local copy (same-origin) if you place it at: public/vendor/zxing-umd.min.js
+    // This makes the app work even in restricted egress environments.
+    try {
+      const vendorPath = path.join(__dirname, "public", "vendor", "zxing-umd.min.js");
+      if (fs.existsSync(vendorPath)) {
+        const code = fs.readFileSync(vendorPath, "utf8");
+        if (code && code.length >= 50_000) {
+          _ZXING_CACHE = code;
+          _ZXING_ETAG = sha256Hex(code);
+          console.log("[ZXing] using local vendor file:", vendorPath);
+          return { code: _ZXING_CACHE, etag: _ZXING_ETAG };
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Next-best: serve directly from node_modules (runtime offline). Requires @zxing/browser installed.
+    try {
+      const nmCandidates = [
+        path.join(__dirname, "node_modules", "@zxing", "browser", "umd", "zxing-browser.min.js"),
+        path.join(__dirname, "node_modules", "@zxing", "browser", "umd", "zxing-browser.js"),
+      ];
+      for (const p of nmCandidates) {
+        if (!fs.existsSync(p)) continue;
+        const code = fs.readFileSync(p, "utf8");
+        if (code && code.length >= 50_000) {
+          _ZXING_CACHE = code;
+          _ZXING_ETAG = sha256Hex(code);
+          console.log("[ZXing] using node_modules bundle:", p);
+          return { code: _ZXING_CACHE, etag: _ZXING_ETAG };
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    for (const url of ZXING_UMD_URLS) {
+      try {
+        const code = await fetchTextWithTimeout(url);
+        // Sanity check: real bundle is large
+        if (!code || code.length < 50_000) throw new Error("ZXing bundle too small / invalid");
+        _ZXING_CACHE = code;
+        _ZXING_ETAG = sha256Hex(code);
+        console.log("[ZXing] cached UMD from:", url);
+        return { code: _ZXING_CACHE, etag: _ZXING_ETAG };
+      } catch (e) {
+        lastErr = e;
+        console.warn("[ZXing] source failed:", url, e?.message || e);
+      }
+    }
+    throw lastErr || new Error("ZXing fetch failed from all sources");
+  })();
+
+  try {
+    return await _ZXING_FETCHING;
+  } finally {
+    _ZXING_FETCHING = null;
+  }
+}
+
 export function createApp() {
   const app = express();
 app.disable("x-powered-by");
@@ -831,6 +941,24 @@ app.use((req, res, next) => {
   app.get("/api/health", (req, res) =>
     res.json({ status: "ok", time: nowIso(), bc_mode: BC_MODE, has_db: !!DATABASE_URL })
   );
+
+  // Serve ZXing bundle from same-origin (client never hits a CDN).
+  app.get("/vendor/zxing-umd.min.js", async (req, res) => {
+    try {
+      const { code, etag } = await getZXingUmd();
+      if (req.headers["if-none-match"] === etag) return res.status(304).end();
+      res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("ETag", etag);
+      return res.send(code);
+    } catch (e) {
+      const msg = (e?.message || String(e)).replace(/\n/g, " ");
+      res.status(503);
+      res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+      return res.send(`/* ZXing unavailable (server could not fetch it): ${msg} */\n`);
+    }
+  });
+
 
   app.get("/api/integration/status", auth, requireRole("admin"), async (req, res) => {
     res.json({

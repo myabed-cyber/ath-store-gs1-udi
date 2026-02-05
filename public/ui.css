@@ -44,7 +44,7 @@
   /* Layout */
   --sb-w: 300px;
   --sb-w-collapsed: 92px;
-  --tb-h: clamp(72px, 9vh, 96px);
+  --tb-h: 74px;
 }
 
 html[data-theme="dark"]{
@@ -72,7 +72,7 @@ html[data-theme="dark"]{
 html,body{ height:100%; }
 body{
   margin:0;
-  font-family: "Tajawal", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: system-ui, -apple-system, "Tajawal", "Segoe UI", Roboto, Arial, sans-serif;
   color:var(--text);
   background:
     radial-gradient(1000px 600px at 18% -10%, rgba(37,99,235,.14), transparent 60%),
@@ -211,9 +211,9 @@ html[data-theme="dark"] .sb-collapse{ background: rgba(255,255,255,.06); }
   position:sticky;
   top:0;
   min-height: var(--tb-h);
-  height:auto;
-  flex-wrap: wrap;
+  height: auto;
   display:flex;
+  flex-wrap: wrap;
   align-items:center;
   justify-content:space-between;
   gap: 14px;
@@ -229,8 +229,8 @@ html[data-theme="dark"] .topbar{
 
 .tb-left{ display:flex; align-items:center; gap: 12px; min-width: 0; }
 .hdr-logo{
-  width: clamp(130px, 14vw, 210px);
-  height: clamp(50px, 6vw, 78px);
+  width: clamp(220px, 22vw, 360px);
+  height: clamp(82px, 9vw, 150px);
   object-fit: contain;
   filter: drop-shadow(0 10px 20px rgba(0,0,0,.10));
 }
@@ -255,14 +255,15 @@ html[data-theme="dark"] .topbar{
 }
 
 .corp-logo{
-  height: clamp(44px, 5.5vw, 72px);
+  height: clamp(70px, 8vw, 130px);
   width: auto;
-  max-width: 320px;
+  max-width: clamp(340px, 34vw, 560px);
   object-fit: contain;
   filter: drop-shadow(0 12px 22px rgba(0,0,0,.10));
 }
 
 /* Connection indicator */
+.user-ico{ opacity:.9; }
 .net-pill{
   display:inline-flex;
   align-items:center;
@@ -274,9 +275,6 @@ html[data-theme="dark"] .topbar{
   font-weight: 900;
   font-size: 12px;
 }
-
-.user-pill{ padding: 10px 12px; }
-.user-ic{ font-size: 16px; line-height: 1; opacity: .85; }
 html[data-theme="dark"] .net-pill{ background: rgba(255,255,255,.06); }
 .dot{ width:10px; height:10px; border-radius: 99px; background: var(--muted); box-shadow: 0 0 0 3px rgba(100,116,139,.18); }
 .dot.ok{ background: var(--ok); box-shadow: 0 0 0 3px rgba(22,163,74,.22); }
@@ -689,18 +687,33 @@ html[data-theme="dark"] .cmdk__input{ background: rgba(255,255,255,.06); }
 }
 
 
-/* --- Topbar responsiveness --- */
-@media (max-width: 1100px){
-  .corp-logo{ max-width: 240px; }
+/* ---------------- Progressive disclosure (details/summary) ---------------- */
+details.fold{
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 12px;
 }
-@media (max-width: 980px){
-  .corp-logo{ display:none; }
-  .topbar{ padding: 10px 12px; }
-  .tb-title .crumb{ display:none; }
+details.fold > summary{
+  cursor: pointer;
+  list-style: none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  font-weight: 900;
+  color: var(--text);
+  padding: 6px 2px;
 }
-@media (max-width: 640px){
-  .hdr-logo{ width: clamp(120px, 34vw, 180px); height: clamp(44px, 12vw, 64px); }
-  .tb-title .name{ font-size: 16px; }
-  .tb-right{ gap: 8px; }
-  .btn{ padding: 9px 10px; }
+details.fold > summary::-webkit-details-marker{ display:none; }
+details.fold > summary::after{
+  content: '▾';
+  font-weight: 900;
+  opacity: .65;
+  transform: translateY(-1px);
 }
+details.fold[open] > summary::after{ content: '▴'; }
+details.fold > summary:focus{ outline:none; box-shadow: var(--focus); border-radius: 10px; }
+details.fold .hr{ margin-top: 10px; }
+
