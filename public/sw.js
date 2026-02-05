@@ -1,6 +1,6 @@
 /* Minimal SW (v4) — caches static assets (excluding HTML) to avoid update traps */
 // Updated cache version after changing assets (logo image). Increment version to bust old caches.
-const CACHE = 'gs1hub-shell-v6';
+const CACHE = 'gs1hub-shell-v7';
 const ASSETS = [
   './ui.css',
   './app.js',

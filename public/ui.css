@@ -44,7 +44,7 @@
   /* Layout */
   --sb-w: 300px;
   --sb-w-collapsed: 92px;
-  --tb-h: 74px;
+  --tb-h: clamp(72px, 9vh, 96px);
 }
 
 html[data-theme="dark"]{
@@ -210,7 +210,9 @@ html[data-theme="dark"] .sb-collapse{ background: rgba(255,255,255,.06); }
 .topbar{
   position:sticky;
   top:0;
-  height: var(--tb-h);
+  min-height: var(--tb-h);
+  height:auto;
+  flex-wrap: wrap;
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -227,8 +229,8 @@ html[data-theme="dark"] .topbar{
 
 .tb-left{ display:flex; align-items:center; gap: 12px; min-width: 0; }
 .hdr-logo{
-  width: 92px;
-  height: 46px;
+  width: clamp(130px, 14vw, 210px);
+  height: clamp(50px, 6vw, 78px);
   object-fit: contain;
   filter: drop-shadow(0 10px 20px rgba(0,0,0,.10));
 }
@@ -253,9 +255,9 @@ html[data-theme="dark"] .topbar{
 }
 
 .corp-logo{
-  height: 48px;
+  height: clamp(44px, 5.5vw, 72px);
   width: auto;
-  max-width: 220px;
+  max-width: 320px;
   object-fit: contain;
   filter: drop-shadow(0 12px 22px rgba(0,0,0,.10));
 }
@@ -272,6 +274,9 @@ html[data-theme="dark"] .topbar{
   font-weight: 900;
   font-size: 12px;
 }
+
+.user-pill{ padding: 10px 12px; }
+.user-ic{ font-size: 16px; line-height: 1; opacity: .85; }
 html[data-theme="dark"] .net-pill{ background: rgba(255,255,255,.06); }
 .dot{ width:10px; height:10px; border-radius: 99px; background: var(--muted); box-shadow: 0 0 0 3px rgba(100,116,139,.18); }
 .dot.ok{ background: var(--ok); box-shadow: 0 0 0 3px rgba(22,163,74,.22); }
@@ -681,4 +686,21 @@ html[data-theme="dark"] .cmdk__input{ background: rgba(255,255,255,.06); }
 @media (max-width: 520px){
   .fields{ grid-template-columns: 1fr; }
   .scanner__frame{ inset: 14px; }
+}
+
+
+/* --- Topbar responsiveness --- */
+@media (max-width: 1100px){
+  .corp-logo{ max-width: 240px; }
+}
+@media (max-width: 980px){
+  .corp-logo{ display:none; }
+  .topbar{ padding: 10px 12px; }
+  .tb-title .crumb{ display:none; }
+}
+@media (max-width: 640px){
+  .hdr-logo{ width: clamp(120px, 34vw, 180px); height: clamp(44px, 12vw, 64px); }
+  .tb-title .name{ font-size: 16px; }
+  .tb-right{ gap: 8px; }
+  .btn{ padding: 9px 10px; }
 }

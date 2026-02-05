@@ -8,7 +8,7 @@
        3) same-origin default
 */
 (() => {
-  const BUILD = 'revamp-ui-2026-02-05-fix1';
+  const BUILD = 'revamp-ui-2026-02-05-fix2';
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -100,9 +100,38 @@
 
     const cmdInput = $('#cmdkInput');
     if (cmdInput) cmdInput.setAttribute('placeholder', t('cmdk.placeholder'));
+
+    renderThemeButton();
   }
 
-  function initShell() {
+  
+  // Theme (default: Light)
+  function renderThemeButton() {
+    const btn = $('#btnTheme');
+    if (!btn) return;
+    const isDark = state.theme === 'dark';
+    if (state.lang === 'en') btn.textContent = isDark ? 'Dark' : 'Light';
+    else btn.textContent = isDark ? 'داكن' : 'فاتح';
+  }
+
+  function applyTheme(mode) {
+    state.theme = (mode === 'dark') ? 'dark' : 'light';
+    try { localStorage.setItem('gs1hub.theme', state.theme); } catch {}
+    if (state.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+    renderThemeButton();
+  }
+
+  function initTheme() {
+    let saved = 'light';
+    try { saved = localStorage.getItem('gs1hub.theme') || 'light'; } catch {}
+    // Force Light as default even if OS prefers dark
+    applyTheme(saved || 'light');
+    $('#btnTheme')?.addEventListener('click', () => applyTheme(state.theme === 'dark' ? 'light' : 'dark'));
+  }
+
+
+function initShell() {
     const shell = document.querySelector('.shell');
     if (!shell) return;
     const key = 'gs1hub.sidebar';
@@ -249,15 +278,37 @@
 
   // Net status indicator
   function initNetPill() {
+    const pill = $('#netPill');
     const dot = $('#netDot');
     const text = $('#netText');
     if (!dot || !text) return;
 
-    function set(ok, label) {
+    // Keep label stable; use the dot + tooltip for status (avoids the weird “OK” bubble).
+    text.textContent = 'API';
+
+    function set(ok) {
       dot.classList.remove('ok', 'bad');
       dot.classList.add(ok ? 'ok' : 'bad');
-      text.textContent = label || (ok ? 'OK' : 'DOWN');
+      if (pill) {
+        pill.title = ok ? 'API: OK' : 'API: DOWN';
+        pill.dataset.status = ok ? 'ok' : 'down';
+      }
     }
+
+    async function ping() {
+      try {
+        await apiGet('/api/health');
+        set(true);
+      } catch (e) {
+        set(false);
+      }
+    }
+
+    set(false);
+    setTimeout(ping, 600);
+    setInterval(() => { if (!document.hidden) ping(); }, 45000);
+  }
+
 
     async function ping() {
       try {
@@ -325,6 +376,7 @@ async function boot() {
     initModal();
     initCmdk();
     initNetPill();
+    initTheme();
     applyLang(state.lang);
 
     await hydrateAuth();
@@ -436,12 +488,20 @@ async function boot() {
 
   function requireRole(allowed, ok) {
     const role = (state.me && state.me.role) || '';
-    // No session → always send to login (not an "unauth" wall)
-    if (!state.token) {
+    const user = (state.me && state.me.username) || '';
+
+    // No valid session → always send to login (not an unauth wall)
+    if (!state.token || !role || !user) {
+      // Clear any half-session to prevent landing on #/unauth
+      state.token = '';
+      state.me = null;
+      try { localStorage.removeItem('gs1hub.token'); localStorage.removeItem('gs1hub.me'); } catch {}
+      updateSessionBox();
       location.hash = '#/login';
       showLogin();
       return;
     }
+
     // Session exists but role is insufficient → show unauth
     if (!allowed.includes(role)) {
       location.hash = '#/unauth';
@@ -454,7 +514,8 @@ async function boot() {
   function roleLabel() {
     const role = (state.me && state.me.role) || 'unknown';
     const user = (state.me && state.me.username) || '—';
-    return `${user} • ${role}`;
+      const same = (role || '').toLowerCase() === (user || '').toLowerCase();
+    return (!role || same) ? user : `${user} • ${role}`;
   }
 
   function updateSessionBox() {
@@ -475,14 +536,18 @@ async function boot() {
       return;
     }
 
-    label.textContent = `${user} • ${role}`;
+        const same = (role || '').toLowerCase() === (user || '').toLowerCase();
+    const prettyRole = role ? (role[0].toUpperCase() + role.slice(1)) : '';
+    const userLabel = (!role || same) ? user : `${user} • ${prettyRole || role}`;
+
+    label.textContent = userLabel;
     box.hidden = false;
 
     const tb = $('#tbUser');
     const tbt = $('#tbUserText');
     if (tb && tbt) {
       tb.hidden = false;
-      tbt.textContent = `${user} • ${role}`;
+            tbt.textContent = userLabel;
     }
 
     // Safety: if buttons exist but weren't bound yet, keep them enabled
@@ -623,7 +688,20 @@ async function boot() {
       try {
         await startScan();
       } catch (e) {
-        toast(e.message || String(e), 'bad');
+        const msg = (e && e.message) ? e.message : String(e);
+        toast(msg, 'bad');
+        // Also show a clear actionable modal (mobile friendly)
+        if (window.__showModal) {
+          window.__showModal('مشكلة في المسح بالكاميرا', `
+            <div class="muted" style="margin-bottom:10px;">${escapeHtml(msg)}</div>
+            <ul style="margin:0; padding-inline-start:22px; line-height:1.9;">
+              <li>تأكد من السماح بالكاميرا (Permissions) داخل المتصفح.</li>
+              <li>جرّب Chrome/Edge — يدعم BarcodeDetector بدون ZXing.</li>
+              <li>إذا كان المتصفح لا يدعم BarcodeDetector: يحتاج ZXing (يُحمَّل من CDN). إن كانت الشبكة تمنعه فلن يعمل على هذا الجهاز.</li>
+              <li>بديل سريع: استخدم قارئ باركود USB/BT (يكتب في حقل الإدخال مباشرة).</li>
+            </ul>
+          `);
+        }
       }
     });
 
@@ -664,7 +742,7 @@ async function boot() {
       return;
     }
 
-    throw new Error('لا يوجد Engine متاح. جرّب Chrome/Edge أو أضف zxing-browser.min.js');
+    throw new Error('لا يوجد محرك مسح متاح على هذا المتصفح. جرّب Chrome/Edge (BarcodeDetector) أو اسمح بتحميل ZXing من CDN.');
   }
 
   function stopScan(reason) {
@@ -768,7 +846,7 @@ async function boot() {
       try { await window.__ZXING_LOADING__; } catch {}
       Z = window.ZXingBrowser || window.ZXing;
     }
-    if (!Z) throw new Error('ZXing غير موجود. (ملاحظة: ملف /public/zxing-browser.min.js هنا يقوم بتحميل ZXing من CDN).');
+    if (!Z) throw new Error('ZXing غير متاح (فشل تحميله من CDN أو محظور). استخدم Chrome/Edge (BarcodeDetector) أو اسمح بالوصول إلى jsDelivr/unpkg أو استخدم قارئ باركود USB.');
 
     const v = $('#video');
     if (!v) throw new Error('Video element missing');
