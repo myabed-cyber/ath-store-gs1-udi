@@ -916,7 +916,7 @@ app.use((req, res, next) => {
   // CSP: allow self + blob for camera preview; allow inline styles/scripts for the single-file UI.
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'self'; base-uri 'self'"
+    "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-ancestors 'self'; base-uri 'self'"
   );
   if (req.secure) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   next();

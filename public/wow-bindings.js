@@ -46,25 +46,52 @@
     const area = el("toastArea") || $(".toast-container");
     if (!area) return console.log("[toast]", type, message);
 
+    const tone = {
+      success: {
+        accent: "var(--tactical-green)",
+        bg: "rgba(16, 185, 129, 0.12)",
+        border: "rgba(16, 185, 129, 0.25)",
+        icon: "ph-check-circle",
+      },
+      error: {
+        accent: "var(--tactical-red)",
+        bg: "rgba(239, 68, 68, 0.12)",
+        border: "rgba(239, 68, 68, 0.25)",
+        icon: "ph-warning-circle",
+      },
+      warn: {
+        accent: "var(--tactical-amber)",
+        bg: "rgba(245, 158, 11, 0.12)",
+        border: "rgba(245, 158, 11, 0.25)",
+        icon: "ph-warning",
+      },
+      info: {
+        accent: "var(--brand-primary)",
+        bg: "rgba(59, 130, 246, 0.10)",
+        border: "rgba(59, 130, 246, 0.20)",
+        icon: "ph-info",
+      },
+    };
+
+    const tTone = tone[type] || tone.info;
+
     const t = document.createElement("div");
     t.className = "toast";
-    const color =
-      type === "success" ? "var(--success)" : type === "error" ? "var(--danger)" : type === "warn" ? "var(--warning)" : "var(--brand-primary)";
 
     const actionHtml =
       opts.action && opts.action.label
-        ? `<button class="btn secondary" style="padding:8px 10px; font-size:12px; margin-left:10px; border-color: ${color}; color:${color}">
+        ? `<button class="btn secondary" style="padding:8px 10px; font-size:12px; margin-left:10px; border-color:${tTone.border}; color:${tTone.accent}; background:transparent;">
              ${escapeHtml(opts.action.label)}
            </button>`
         : "";
 
     t.innerHTML = `
-      <div class="toast-icon" style="background:${color}20; color:${color}; border: 1px solid ${color}30">
-        <i class="ph-bold ph-info"></i>
+      <div style="width: 34px; height: 34px; border-radius: 12px; display:grid; place-items:center; background:${tTone.bg}; color:${tTone.accent}; border:1px solid ${tTone.border}">
+        <i class="ph-bold ${tTone.icon}"></i>
       </div>
-      <div class="toast-content">
-        <div class="toast-title" style="color:${color}">${escapeHtml(opts.title || "Notification")}</div>
-        <div class="toast-message">${escapeHtml(message)}</div>
+      <div style="display:flex; flex-direction:column; line-height:1.2;">
+        <div style="font-weight:800; font-size:12px; color:${tTone.accent}">${escapeHtml(opts.title || "Notification")}</div>
+        <div style="font-size:12px; color: var(--text-main); opacity:.92;">${escapeHtml(message)}</div>
       </div>
       ${actionHtml}
     `;
@@ -75,10 +102,9 @@
     }
 
     area.appendChild(t);
-    requestAnimationFrame(() => t.classList.add("show"));
-    const ttl = opts.ttl ?? (type === "error" ? 5200 : 3200);
+    const ttl = opts.ttl ?? (type === "error" ? 6500 : 3500);
     setTimeout(() => {
-      t.classList.remove("show");
+      t.style.opacity = "0";
       setTimeout(() => t.remove(), 260);
     }, ttl);
   }
@@ -1230,15 +1256,45 @@
   async function bindLogin() {
     const form = el("loginForm");
     const btn = el("loginBtn");
+    const errBox = el("loginInlineError");
     if (!form || !btn) return;
+
+    const pickUserEl = () =>
+      el("username") ||
+      form.querySelector('input[name="username"]') ||
+      form.querySelector('input[type="text"]') ||
+      form.querySelector('input[placeholder*="Operator"]') ||
+      form.querySelector("input");
+
+    const pickPassEl = () =>
+      el("password") ||
+      form.querySelector('input[name="password"]') ||
+      form.querySelector('input[type="password"]') ||
+      form.querySelector('input[placeholder*="Access"]');
+
+    const setLoginError = (msg) => {
+      if (!errBox) return;
+      errBox.textContent = msg || "";
+      errBox.style.display = msg ? "block" : "none";
+    };
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (window.sfx && window.sfx.click) window.sfx.click();
+      try { if (window.sfx && window.sfx.click) window.sfx.click(); } catch {}
 
-      const username = el("username")?.value?.trim();
-      const password = el("password")?.value;
-      if (!username || !password) return toast("Enter username & password", "warn", { title: "Login" });
+      setLoginError("");
+
+      const uEl = pickUserEl();
+      const pEl = pickPassEl();
+
+      const username = uEl?.value?.trim();
+      const password = pEl?.value;
+
+      if (!username || !password) {
+        toast("Enter username & password", "warn", { title: "Login" });
+        setLoginError("Enter username & password.");
+        return;
+      }
 
       btn.disabled = true;
       const original = btn.innerHTML;
@@ -1260,8 +1316,20 @@
 
         toast("Welcome back.", "success", { title: "Authenticated", ttl: 1800 });
         await loadOverview();
+
+        // Preload panel datasets
+        loadTop200("").catch(()=>{});
+        loadWorkSessions("").catch(()=>{});
+        loadCases().catch(()=>{});
+        loadAudit().catch(()=>{});
+        if (state.role === "admin") {
+          loadAdminMappings("").catch(()=>{});
+          loadUsers().catch(()=>{});
+        }
       } catch (err) {
+        console.error("[AUTH] login failed:", err);
         toast(err.message || "Login failed", "error", { title: "Authentication" });
+        setLoginError(err.message || "Login failed.");
       } finally {
         btn.disabled = false;
         btn.innerHTML = original;

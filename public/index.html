@@ -359,12 +359,13 @@
                     </div>
 
                     <form id="loginForm">
-                        <input type="text" class="form-input" placeholder="Operator ID" value="ATH-ADMIN">
-                        <input type="password" class="form-input" placeholder="Access Key" value="password">
+                        <input type="text" class="form-input" id="username" name="username" autocomplete="username" placeholder="Operator ID" value="">
+                        <input type="password" class="form-input" id="password" name="password" autocomplete="current-password" placeholder="Access Key" value="">
                         <button type="submit" class="btn-primary" id="loginBtn" onmouseenter="sfx.hover()">
                             <span>Initialize System</span>
                             <i class="ph-bold ph-arrow-right"></i>
                         </button>
+                        <div id="loginInlineError" style="display:none; margin-top:10px; font-size:12px; font-weight:700; color: var(--tactical-red);"></div>
                     </form>
                 </div>
             </div>
