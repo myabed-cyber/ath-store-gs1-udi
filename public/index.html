@@ -22,28 +22,42 @@
   </script>
 
   <link rel="manifest" href="./manifest.webmanifest"/>
-  <title>GS1/UDI Enterprise Hub</title>
+  <title>ATH Medical Division — Warehouse Hub</title>
   <link rel="icon" href="./assets/logo.svg" type="image/svg+xml"/>
 
   <!-- Fonts -->
 
   <!-- Pro UI -->
   <link rel="stylesheet" href="./ui.css">
+
+  <!-- Premium Fonts (optional, with strong fallbacks) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 </head>
 
 <body data-page="login" data-auth="0">
+  <!-- Ambient Core -->
+  <div class="ambient-layer" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="grid-overlay"></div>
+    <div class="noise-overlay"></div>
+  </div>
+
   <div class="shell">
     <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sb-top">
         <div class="sb-brand">
-        <img class="sb-logo" src="./logo.png" alt="Logo"/>
-        <div>
-          <div class="sb-title">GS1/UDI Enterprise Hub</div>
-          <div class="sb-sub">Warehouse Barcode & UDI</div>
+        <img class="sb-logo" src="./assets/ath-medical-division.png" alt="ATH Medical Division"/>
+        <div class="sb-text">
+          <div class="sb-title">ATH Medical Division</div>
+          <div class="sb-sub">Warehouse Hub</div>
         </div>
       </div>
-        <button class="sb-collapse" id="btnSidebar" title="Collapse / Expand" aria-label="Toggle sidebar">
+      <button class="sb-collapse" id="btnSidebar" title="Collapse / Expand" aria-label="Toggle sidebar"> id="btnSidebar" title="Collapse / Expand" aria-label="Toggle sidebar">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
             <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
@@ -67,109 +81,105 @@
         </a>
       </nav>
 
-      <div class="sb-foot">
-        <div class="muted mono" id="envHint"></div>
-        <div class="muted" style="margin-top:6px;">© GS1/UDI Enterprise Hub</div>
-      </div>
-    </aside>
+      
+<div class="sb-foot">
+  <div class="muted mono" id="envHint" style="display:none;"></div>
+  <div class="sb-copyright">© ATH Medical Division</div>
+</div>
+</aside>
+
 
     <!-- WORKSPACE -->
     <div class="workspace">
-      <header class="topbar">
-        <div class="tb-left">
-          <img class="hdr-logo" src="./logo_header.png" alt="GS1/UDI"/>
-          <div class="tb-title">
-            <div class="name">GS1/UDI Enterprise Hub</div>
-            <div class="crumb" id="pageCrumb" data-i18n="top.crumb">Unified Operator + Admin Console</div>
-          </div>
-        </div>
+      
+<header class="topbar glass-panel">
+  <div class="tb-left">
+    <img class="ath-logo" src="./assets/ath-medical-division.png" alt="ATH Medical Division" />
+    <div class="tb-meta">
+      <div class="tb-crumb" id="pageCrumb">—</div>
+      <div class="tb-sub" id="pageSub">—</div>
+    </div>
+  </div>
 
-        <div class="tb-right">
-          <img class="corp-logo" src="./assets/ath-medical-division.png" alt="Arabian Trade House — Medical Division" />
-          <div class="net-pill" id="netPill" title="API status">
-            <span class="dot" id="netDot"></span>
-            <span id="netText" class="mono">API</span>
+  <div class="tb-right">
+    <div class="toolbar">
+      <button class="pill" id="btnTheme" type="button" title="Theme">Dark</button>
+      <button class="pill" id="btnLang" type="button" title="Language">EN</button>
+
+      <div class="net-pill" id="netPill" title="API">
+        <span class="net-dot" id="netDot"></span>
+        <span class="net-text" id="netText">API</span>
+      </div>
+
+      <div class="tb-user">
+        <div class="user-pill" id="tbUser" title="Account">
+          <div class="user-avatar" id="userAvatar">A</div>
+          <div class="user-meta">
+            <div class="user-name" id="userName">—</div>
+            <div class="user-role" id="userRole">—</div>
           </div>
-          <div class="net-pill" id="tbUser" title="User" hidden>
-            <svg class="user-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
-              <path d="M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Z" stroke="currentColor" stroke-width="2"/>
-              <path d="M4.5 20.5c1.8-4 13.2-4 15 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span id="tbUserText">—</span>
-          </div>
-<button class="btn btn--ghost" id="btnLang" title="Language">EN</button>
-          <button class="btn btn--ghost" id="btnTheme" title="تبديل الوضع">Theme</button>
-<button class="btn btn--ghost" id="btnLogout" hidden>Logout</button>
         </div>
-      </header>
+        <button class="pill pill--danger" id="btnLogout" type="button" title="Logout">⎋</button>
+      </div>
+    </div>
+  </div>
+</header>
+
 
       <main class="main">
         <!-- LOGIN -->
         <section class="page" id="page-login" data-page="login">
-          <div class="login-wrap">
-            <div class="hero">
-              <div>
-                <div class="hero-top">
-                  <img src="./logo.png" alt="GS1/UDI"/>
-                  <div>
-                    <h1 data-i18n="login.title">تسجيل الدخول</h1>
-                    <p>واجهة واحدة للمشغّل والإدارة — منظمة، واضحة، وقابلة للتوسع.</p>
-                  </div>
-                </div>
+  <div class="login-wrapper">
+    <div class="login-card glass-panel">
+      <div class="login-brand">
+        <img class="brand-logo" src="./assets/ath-medical-division.png" alt="ATH Medical Division" />
+        <div class="login-brand-text">
+          <div class="login-kicker">ATH Medical Division</div>
+          <h1 class="login-title" data-i18n="login.title">تسجيل الدخول</h1>
+          <p class="login-sub" data-i18n="login.credentials">استخدم حساب Operator أو Admin حسب الصلاحيات.</p>
+        </div>
+      </div>
 
-                <div class="hr"></div>
+      <div class="alert" id="loginAlert" style="display:none"></div>
 
-                <p class="muted" style="margin:10px 0 0; font-weight:700;">واجهة مركّزة للمسح والتحقق وإنشاء الحالات عند الحاجة.</p>
-              </div>
-
-              
-            </div>
-
-            <div class="card card--hero">
-              <div class="page-head">
-                <div>
-                  <div class="h1" data-i18n="login.credentials">بيانات الدخول</div>
-                  <div class="sub">استخدم حساب Operator أو Admin حسب الصلاحيات.</div>
-                </div>
-              </div>
-
-              <form id="loginForm" class="row" style="flex-direction:column; align-items:stretch;">
-                <label class="field">
-                  <span>اسم المستخدم</span>
-                  <input id="loginUser" autocomplete="username" required placeholder="operator / admin" />
-                </label>
-
-                <label class="field">
-                  <span>كلمة المرور</span>
-                  <input id="loginPass" type="password" autocomplete="current-password" required placeholder="••••••••" />
-                </label>
-
-                <div class="row" style="justify-content:space-between;">
-                  <button class="btn btn--primary" id="btnLogin" type="submit">دخول</button>
-                  <button class="btn btn--ghost" id="btnDemo" type="button">تعبئة Demo</button>
-                </div>
-
-                <div id="loginAlert" class="alert" hidden></div>
-
-                <div id="sessionBox" class="alert" hidden>
-                  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-                    <div>
-                      <div style="font-weight:900;">جلسة محفوظة</div>
-                      <div class="muted" id="sessionLabel">—</div>
-                    </div>
-                    <div class="row">
-                      <button class="btn btn--primary" id="btnContinue" type="button">متابعة</button>
-                      <button class="btn btn--ghost" id="btnClearSession" type="button">تسجيل خروج</button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-
-              <div class="hr"></div>
-              
-            </div>
+      <form id="loginForm" class="login-form" autocomplete="on">
+        <label class="field">
+          <span class="field-label">اسم المستخدم</span>
+          <div class="field-control">
+            <span class="field-ico">👤</span>
+            <input id="loginUser" name="username" class="form-input" placeholder="operator / admin" autocomplete="username" />
           </div>
-        </section>
+        </label>
+
+        <label class="field">
+          <span class="field-label">كلمة المرور</span>
+          <div class="field-control">
+            <span class="field-ico">🔒</span>
+            <input id="loginPass" name="password" type="password" class="form-input" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+        </label>
+
+        <button class="btn-primary" id="btnLogin" type="submit">
+          <span>الدخول</span>
+          <span class="btn-ico">→</span>
+        </button>
+      </form>
+
+      <div class="session-box glass-panel" id="sessionBox" style="display:none">
+        <div class="session-row">
+          <div class="session-title">Session</div>
+          <div class="session-pill mono" id="sessionLabel">—</div>
+        </div>
+        <div class="session-actions">
+          <button class="pill" id="btnResume" type="button">Resume</button>
+          <button class="pill pill--danger" id="btnForget" type="button">Forget</button>
+        </div>
+      </div>
+
+      <div class="login-foot">© ATH Medical Division</div>
+    </div>
+  </div>
+</section>
 
         <!-- OPERATOR -->
         <section class="page" id="page-operator" data-page="operator" hidden>
@@ -504,27 +514,99 @@
   
   <!-- ZXing loader (same-origin, offline-capable) -->
   <script>
-    // Loads ZXing on-demand from the server (same-origin).
-    // The browser NEVER hits a CDN directly.
-    (function(){
-      function load() {
-        if (window.ZXingBrowser || window.ZXing) return Promise.resolve();
-        if (window.__ZXING_LOADING__) return window.__ZXING_LOADING__;
-        window.__ZXING_LOADING__ = new Promise(function(resolve, reject){
-          try{
-            var s = document.createElement('script');
-            s.src = '/vendor/zxing-umd.min.js';
-            s.async = true;
-            s.onload = function(){ resolve(); };
-            s.onerror = function(){ reject(new Error('ZXing script failed to load')); };
-            document.head.appendChild(s);
-          } catch(e){ reject(e); }
-        });
-        return window.__ZXING_LOADING__;
+  // ZXing on-demand loader with multi-source fallback + localStorage caching.
+  // This enables scanning even on file:// (where BarcodeDetector may be unavailable),
+  // once the bundle is cached at least once.
+  (function(){
+    var KEY = '__zxing_umd_cache_v1';
+    var loadingPromise = null;
+
+    function injectScript(src){
+      return new Promise(function(resolve, reject){
+        var s=document.createElement('script');
+        s.src=src;
+        s.async=true;
+        s.onload=function(){ resolve(src); };
+        s.onerror=function(){ try{ s.remove(); }catch(e){} reject(new Error('Failed: '+src)); };
+        document.head.appendChild(s);
+      });
+    }
+
+    function injectFromText(jsText){
+      return new Promise(function(resolve, reject){
+        try{
+          var blob=new Blob([jsText], {type:'text/javascript'});
+          var url=URL.createObjectURL(blob);
+          injectScript(url).then(function(){
+            URL.revokeObjectURL(url);
+            resolve('blob');
+          }).catch(function(err){
+            try{ URL.revokeObjectURL(url); }catch(e){}
+            reject(err);
+          });
+        }catch(e){ reject(e); }
+      });
+    }
+
+    async function fetchText(url){
+      var r = await fetch(url, {mode:'cors', cache:'force-cache'});
+      if(!r.ok) throw new Error('HTTP '+r.status+' for '+url);
+      return await r.text();
+    }
+
+    async function trySources(){
+      // 1) local vendor (recommended for fully-offline)
+      try{ await injectScript('./vendor/zxing-umd.min.js'); return {source:'local'}; }catch(e){}
+
+      // 2) localStorage cache
+      try{
+        var cached = localStorage.getItem(KEY);
+        if(cached && cached.length>1000){
+          await injectFromText(cached);
+          return {source:'localStorage'};
+        }
+      }catch(e){}
+
+      // 3) CDN list (download once, then cache)
+      var cdns = [
+        'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.1/umd/zxing-browser.min.js',
+        'https://unpkg.com/@zxing/browser@0.1.1/umd/zxing-browser.min.js',
+        'https://cdn.jsdelivr.net/npm/@zxing/browser@latest/umd/zxing-browser.min.js',
+        'https://unpkg.com/@zxing/browser@latest/umd/zxing-browser.min.js'
+      ];
+
+      for(var i=0;i<cdns.length;i++){
+        var url = cdns[i];
+        try{
+          var txt = await fetchText(url);
+          try{ localStorage.setItem(KEY, txt); }catch(e){}
+          await injectFromText(txt);
+          return {source:url};
+        }catch(e){}
       }
-      window.__ensureZXing = function(){ return load(); };
-    })();
-  </script>
+
+      throw new Error('ZXing bundle unavailable (local, cache, and CDN all failed).');
+    }
+
+    window.__ensureZXing = function(){
+      if(window.ZXingBrowser || window.ZXing) return Promise.resolve({source:'already-loaded'});
+      if(loadingPromise) return loadingPromise;
+
+      loadingPromise = (async function(){
+        var info = await trySources();
+        if(!(window.ZXingBrowser || window.ZXing)) throw new Error('ZXing loaded but globals missing.');
+        window.__zxingSource = info.source;
+        return info;
+      })().catch(function(err){
+        console.error(err);
+        window.__zxingSource = 'missing';
+        return Promise.reject(err);
+      });
+
+      return loadingPromise;
+    };
+  })();
+</script>
 
 <script src="./app.js" defer></script>
 
