@@ -998,6 +998,7 @@ app.use((req, res, next) => {
     res.json({ user: { id: req.user.sub, username: req.user.username, role: req.user.role } });
   });
 
+  
   // ---------------- UI Helpers (WOW dashboard) ----------------
   // GET /api/ui/overview
   // - Returns lightweight metrics + recent activity
@@ -1078,7 +1079,7 @@ app.use((req, res, next) => {
     }
   });
 
-  app.post("/api/scans/parse-validate", parseRateLimit, auth, requireRole("operator", "admin"), async (req, res) => {
+app.post("/api/scans/parse-validate", parseRateLimit, auth, requireRole("operator", "admin"), async (req, res) => {
     const idem = req.header("Idempotency-Key");
     if (!idem) return res.status(400).json({ error: "Missing Idempotency-Key" });
 
@@ -1385,7 +1386,7 @@ app.get("/api/dashboard/summary", auth, requireRole("admin"), async (req, res) =
   // ---------------- Admin: Users ----------------
   app.get("/api/admin/users", auth, requireRole("admin"), async (req, res) => {
     const r = await q("SELECT id, username, role, is_active, created_at FROM users ORDER BY created_at DESC LIMIT 200");
-    res.json(r.rows.map(u => ({ username: u.username, role: u.role, created_at: u.created_at, status: u.is_active ? "ACTIVE" : "DISABLED" })));
+    res.json(r.rows.map(u => ({ id: u.id, username: u.username, role: u.role, created_at: u.created_at, status: u.is_active ? "ACTIVE" : "DISABLED" })));
   });
 
   app.post("/api/admin/users", auth, requireRole("admin"), async (req, res) => {
@@ -1450,7 +1451,7 @@ app.get("/api/dashboard/summary", auth, requireRole("admin"), async (req, res) =
   });// UI users endpoints
 app.get("/api/users", auth, requireRole("admin"), async (req, res) => {
   const r = await q("SELECT id, username, role, is_active, created_at FROM users ORDER BY created_at DESC LIMIT 200");
-  res.json(r.rows.map(u => ({ username: u.username, role: u.role, created_at: u.created_at, status: u.is_active ? "ACTIVE" : "DISABLED" })));
+  res.json(r.rows.map(u => ({ id: u.id, username: u.username, role: u.role, created_at: u.created_at, status: u.is_active ? "ACTIVE" : "DISABLED" })));
 });
 
 app.post("/api/users", auth, requireRole("admin"), async (req, res) => {
