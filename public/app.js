@@ -8,7 +8,7 @@
        3) same-origin default
 */
 (() => {
-  const BUILD = 'revamp-ui-2026-02-05-zxing-fix';
+  const BUILD = 'revamp-ui-2026-02-05-final';
   window.__BUILD__ = BUILD;
 
   const $ = (sel) => document.querySelector(sel);
@@ -574,10 +574,12 @@ async function boot() {
         localStorage.setItem('gs1hub.me', JSON.stringify(state.me || {}));
 
         toast('تم تسجيل الدخول', 'ok');
+        try { window.SFX?.success?.(); } catch {}
         applyRBACNav();
         updateSessionBox();
         location.hash = '#/' + defaultRoute();
       } catch (e) {
+        try { window.SFX?.error?.(); } catch {}
         setAlert('#loginAlert', e.message || String(e), 'bad');
       } finally {
         $('#btnLogin').disabled = false;
@@ -664,7 +666,9 @@ async function boot() {
     if (!state.token) throw new Error('سجّل الدخول أولاً');
     if (state.scan.running) return;
 
-    state.scan.engine = ($('#engineSelect')?.value || 'auto').toLowerCase();
+    
+    try { window.SFX?.scanStart?.(); } catch {}
+state.scan.engine = ($('#engineSelect')?.value || 'auto').toLowerCase();
     await ensureCameraList();
 
     const preferBD = canBarcodeDetector();
@@ -733,38 +737,13 @@ async function boot() {
 
   async function getStreamForCurrentDevice() {
     const deviceId = state.scan.deviceIds[state.scan.deviceIndex];
-    
-    // Primary constraints with specific device or environment facing
-    const primaryConstraints = {
+    const constraints = {
       audio: false,
       video: deviceId
         ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
         : { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
     };
-    
-    // Fallback constraints (simpler, more compatible)
-    const fallbackConstraints = {
-      audio: false,
-      video: { facingMode: 'environment' },
-    };
-    
-    // Last resort - just get any video
-    const lastResortConstraints = {
-      audio: false,
-      video: true,
-    };
-    
-    try {
-      return await navigator.mediaDevices.getUserMedia(primaryConstraints);
-    } catch (e1) {
-      console.warn('Primary camera constraints failed, trying fallback...', e1);
-      try {
-        return await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-      } catch (e2) {
-        console.warn('Fallback camera constraints failed, trying last resort...', e2);
-        return await navigator.mediaDevices.getUserMedia(lastResortConstraints);
-      }
-    }
+    return await navigator.mediaDevices.getUserMedia(constraints);
   }
 
   async function startBarcodeDetectorEngine() {
@@ -781,43 +760,9 @@ async function boot() {
     } catch {}
 
     state.scan.detector = new BarcodeDetector({ formats });
-    
-    // Get camera stream
     state.scan.stream = await getStreamForCurrentDevice();
-    
-    // Reset video element before attaching new stream
-    v.srcObject = null;
-    v.load();
-    
-    // Attach stream and ensure video is ready
     v.srcObject = state.scan.stream;
-    v.setAttribute('autoplay', 'true');
-    v.setAttribute('playsinline', 'true');
-    v.muted = true;
-    
-    // Wait for video metadata to load before playing
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Video load timeout')), 10000);
-      v.onloadedmetadata = () => {
-        clearTimeout(timeout);
-        resolve();
-      };
-      v.onerror = (e) => {
-        clearTimeout(timeout);
-        reject(new Error('Video error: ' + (e.message || 'unknown')));
-      };
-    });
-    
-    // Play video with error handling
-    try {
-      await v.play();
-    } catch (playErr) {
-      console.warn('Video play() failed, retrying...', playErr);
-      // Retry with user gesture simulation
-      v.muted = true;
-      await v.play();
-    }
-    
+    await v.play();
     state.scan.track = state.scan.stream.getVideoTracks()[0] || null;
 
     updateScanButtons();
@@ -841,46 +786,19 @@ async function boot() {
     state.scan.running = true;
 
     let Z = window.ZXingBrowser || window.ZXing;
-    
     // Try to load ZXing on-demand from same-origin vendor endpoint.
     if (!Z && typeof window.__ensureZXing === 'function') {
-      try { 
-        await window.__ensureZXing(); 
-      } catch (loadErr) {
-        console.warn('ZXing load via __ensureZXing failed:', loadErr);
-      }
-      Z = window.ZXingBrowser || window.ZXing;
+      try { window.__ensureZXing(); } catch {}
     }
-    
     // If ZXing is being loaded via the local loader, wait for it.
     if (!Z && window.__ZXING_LOADING__ && typeof window.__ZXING_LOADING__.then === 'function') {
-      try { 
-        await window.__ZXING_LOADING__; 
-      } catch (loadErr) {
-        console.warn('ZXing load via __ZXING_LOADING__ failed:', loadErr);
-      }
+      try { await window.__ZXING_LOADING__; } catch {}
       Z = window.ZXingBrowser || window.ZXing;
     }
-    
-    // Final check for ZXing availability
-    if (!Z) {
-      console.error('ZXing not available. Checking window objects:', {
-        ZXingBrowser: typeof window.ZXingBrowser,
-        ZXing: typeof window.ZXing
-      });
-      throw new Error('ZXing غير متاح حالياً. تأكد أن السيرفر يقدّم: /vendor/zxing-umd.min.js (Same-Origin). إذا المتصفح يدعم BarcodeDetector فسيعمل بدون ZXing.');
-    }
-    
-    console.log('ZXing loaded successfully:', Z);
+    if (!Z) throw new Error('ZXing غير متاح حالياً. تأكد أن السيرفر يقدّم: /vendor/zxing-umd.min.js (Same-Origin). إذا المتصفح يدعم BarcodeDetector فسيعمل بدون ZXing.');
 
     const v = $('#video');
     if (!v) throw new Error('Video element missing');
-    
-    // Ensure video element has proper attributes for mobile
-    v.setAttribute('autoplay', 'true');
-    v.setAttribute('playsinline', 'true');
-    v.setAttribute('webkit-playsinline', 'true');
-    v.muted = true;
 
     const ReaderCtor =
       Z.BrowserMultiFormatReader ||
@@ -979,7 +897,14 @@ async function boot() {
     if (_status === 'BLOCK') _status = 'WARN';
     state.lastScan = { raw, parsed, status: _status };
     setStatus(_status, _status.toLowerCase());
-    renderFields(parsed || {});
+    
+    try {
+      const s = _status;
+      if (s === 'PASS' || s === 'OK') window.SFX?.success?.();
+      else if (s === 'WARN') window.SFX?.warn?.();
+      else window.SFX?.error?.();
+    } catch {}
+renderFields(parsed || {});
     renderWarnings(parsed || {}, _status);
     $('#commitOut').textContent = JSON.stringify({ status, parsed }, null, 2);
   }
