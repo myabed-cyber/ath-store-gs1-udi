@@ -998,6 +998,86 @@ app.use((req, res, next) => {
     res.json({ user: { id: req.user.sub, username: req.user.username, role: req.user.role } });
   });
 
+  // ---------------- UI Helpers (WOW dashboard) ----------------
+  // GET /api/ui/overview
+  // - Returns lightweight metrics + recent activity
+  // - RBAC: admins see global data, non-admin users see their own cases
+  app.get("/api/ui/overview", auth, requireRole("operator", "admin", "auditor"), async (req, res) => {
+    try {
+      const role = String(req.user.role || '').toLowerCase();
+      const isAdmin = role === 'admin';
+
+      const daily = await q(
+        `
+        SELECT
+          COUNT(*)::int AS total,
+          COALESCE(SUM(CASE WHEN decision='PASS' THEN 1 ELSE 0 END),0)::int AS pass
+        FROM scans
+        WHERE created_at >= date_trunc('day', now())
+      `
+      );
+      const daily_total = daily.rows[0]?.total ?? 0;
+      const daily_pass = daily.rows[0]?.pass ?? 0;
+      const success_rate = daily_total ? Math.round((daily_pass / daily_total) * 1000) / 10 : 0; // 0.0 - 100.0
+
+      // Pending issues (cases)
+      const caseWhere = isAdmin ? "" : " AND user_id=$1";
+      const caseParams = isAdmin ? [] : [req.user.username];
+      const pending = await q(
+        `SELECT COUNT(*)::int AS cnt FROM cases WHERE status IN ('NEW','IN_PROGRESS')${caseWhere}`,
+        caseParams
+      );
+      const pending_issues = pending.rows[0]?.cnt ?? 0;
+
+      // Recent scans
+      const recentScans = await q(
+        `
+        SELECT scan_id, decision, normalized, raw_string, created_at
+        FROM scans
+        ORDER BY created_at DESC
+        LIMIT 12
+      `
+      );
+
+      // Recent cases (admin: global, others: mine)
+      const recentCases = await q(
+        `
+        SELECT id, status, decision, scan_id, created_at
+        FROM cases
+        WHERE 1=1${caseWhere}
+        ORDER BY created_at DESC
+        LIMIT 12
+      `,
+        caseParams
+      );
+
+      // Throughput: last 12 hours (hourly)
+      const tp = await q(
+        `
+        SELECT date_trunc('hour', created_at) AS h, COUNT(*)::int AS c
+        FROM scans
+        WHERE created_at >= now() - interval '12 hours'
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `
+      );
+
+      res.json({
+        ok: true,
+        daily_scans: daily_total,
+        success_rate,
+        pending_issues,
+        throughput: tp.rows.map(r => ({ ts: r.h, count: r.c })),
+        recent_scans: recentScans.rows,
+        recent_cases: recentCases.rows,
+        me: { username: req.user.username, role: req.user.role },
+      });
+    } catch (e) {
+      console.error('ui/overview error:', e);
+      res.status(500).json({ ok: false, error: 'INTERNAL_ERROR' });
+    }
+  });
+
   app.post("/api/scans/parse-validate", parseRateLimit, auth, requireRole("operator", "admin"), async (req, res) => {
     const idem = req.header("Idempotency-Key");
     if (!idem) return res.status(400).json({ error: "Missing Idempotency-Key" });
