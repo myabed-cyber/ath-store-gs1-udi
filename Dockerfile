@@ -6,6 +6,8 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
+RUN apk add --no-cache ca-certificates
+
 RUN npm install --omit=dev && npm cache clean --force
 
 # Bundle app source
