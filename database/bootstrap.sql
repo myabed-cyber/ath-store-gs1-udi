@@ -103,8 +103,6 @@ CREATE INDEX IF NOT EXISTS idx_bc_postings_created_at ON bc_postings(created_at)
   
 
 -- -------- Additional tables for concurrent warehouse work (sessions/transactions) --------
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
 CREATE TABLE IF NOT EXISTS public.items_cache (
   item_no text PRIMARY KEY,
   item_name text NOT NULL,
@@ -159,6 +157,7 @@ CREATE OR REPLACE FUNCTION public.rpc_qty_suggestion(p_session_id uuid, p_item_n
 RETURNS TABLE(found boolean, expected_qty numeric, scanned_qty numeric, remaining_qty numeric)
 LANGUAGE sql
 STABLE
+SET search_path = pg_catalog, public
 AS $$
   SELECT
 true AS found,
@@ -173,6 +172,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.rpc_map_gtin_operator(p_gtin text, p_item_no text, p_actor text)
 RETURNS TABLE(ok boolean, action text, gtin text, item_no text)
 LANGUAGE plpgsql
+SET search_path = pg_catalog, public
 AS $$
 BEGIN
   IF p_gtin IS NULL OR length(trim(p_gtin)) = 0 OR p_item_no IS NULL OR length(trim(p_item_no)) = 0 THEN
@@ -190,3 +190,59 @@ updated_at = now();
   RETURN QUERY SELECT true, 'UPSERT', trim(p_gtin), trim(p_item_no);
 END;
 $$;
+-- -------- Security hardening (Supabase Security Advisor) --------
+-- Enable RLS on public tables exposed to PostgREST; deny anon/authenticated; allow service_role.
+-- Note: Table owners (e.g., postgres) bypass RLS by default unless FORCE ROW LEVEL SECURITY is set (we do NOT force).
+
+DO $$
+DECLARE tbl text;
+BEGIN
+  FOREACH tbl IN ARRAY ARRAY[
+    'seed_meta',
+    'gtin_map',
+    'audit_events',
+    'items_cache',
+    'bc_postings',
+    'work_sessions',
+    'work_lines',
+    'tx_log',
+    'policies',
+    'scans',
+    'users',
+    'cases',
+    'idempotency'
+  ]
+  LOOP
+    IF to_regclass('public.' || tbl) IS NOT NULL THEN
+      EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', tbl);
+
+      -- Drop old policies if they exist (idempotent)
+      EXECUTE format('DROP POLICY IF EXISTS deny_anon_and_authenticated ON public.%I;', tbl);
+      EXECUTE format('DROP POLICY IF EXISTS allow_service_role_only ON public.%I;', tbl);
+
+      -- Deny reads/writes to anon + authenticated
+      IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon')
+         AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        EXECUTE format(
+          'CREATE POLICY deny_anon_and_authenticated ON public.%I FOR ALL TO anon, authenticated USING (false) WITH CHECK (false);',
+          tbl
+        );
+      ELSE
+        -- Fallback (very restrictive) if roles not found
+        EXECUTE format(
+          'CREATE POLICY deny_anon_and_authenticated ON public.%I FOR ALL TO public USING (false) WITH CHECK (false);',
+          tbl
+        );
+      END IF;
+
+      -- Allow service_role (Supabase server-side) if exists
+      IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+        EXECUTE format(
+          'CREATE POLICY allow_service_role_only ON public.%I FOR ALL TO service_role USING (true) WITH CHECK (true);',
+          tbl
+        );
+      END IF;
+    END IF;
+  END LOOP;
+END $$;
+

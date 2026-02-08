@@ -916,7 +916,7 @@ app.use((req, res, next) => {
   // CSP: allow self + blob for camera preview; allow inline styles/scripts for the single-file UI.
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-ancestors 'self'; base-uri 'self'"
+    "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; frame-ancestors 'self'; base-uri 'self'"
   );
   if (req.secure) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   next();
@@ -941,6 +941,43 @@ app.use((req, res, next) => {
   app.get("/api/health", (req, res) =>
     res.json({ status: "ok", time: nowIso(), bc_mode: BC_MODE, has_db: !!DATABASE_URL })
   );
+
+  // Lightweight diagnostics endpoint (no auth) for deployment troubleshooting.
+  // Does NOT expose secrets; it only reports connectivity + counts.
+  app.get("/api/diag", async (req, res) => {
+    const correlation_id = uuid();
+    const out = {
+      status: "ok",
+      time: nowIso(),
+      node_env: NODE_ENV,
+      bc_mode: BC_MODE,
+      has_db: !!DATABASE_URL,
+      db_ping: false,
+      users_count: null,
+      seed_mode: SEED_MODE,
+      no_block: NO_BLOCK,
+      correlation_id,
+    };
+    if (!DATABASE_URL) return res.json(out);
+
+    try {
+      await q("SELECT 1 AS ok");
+      out.db_ping = true;
+    } catch (e) {
+      out.db_ping = false;
+      out.db_error = (e?.message || String(e)).slice(0, 400);
+    }
+
+    try {
+      const r = await q("SELECT COUNT(*)::int AS c FROM users");
+      out.users_count = r.rows[0]?.c ?? 0;
+    } catch {
+      // ignore
+    }
+
+    return res.json(out);
+  });
+
 
   // Serve ZXing bundle from same-origin (client never hits a CDN).
   app.get("/vendor/zxing-umd.min.js", async (req, res) => {
@@ -969,29 +1006,48 @@ app.use((req, res, next) => {
   });
 
   app.post("/api/auth/login", loginRateLimit, async (req, res) => {
-    const { username, password } = req.body || {};
-    if (!username || !password) return res.status(400).json({ error: "Missing username/password" });
+    const correlation_id = uuid();
+    try {
+      const { username, password } = req.body || {};
+      if (!username || !password) return res.status(400).json({ error: "Missing username/password", correlation_id });
 
-    const r = await q("SELECT id, username, password_hash, role, is_active FROM users WHERE username=$1", [
-      username,
-    ]);
-    if (!r.rows.length) return res.status(401).json({ error: "Invalid credentials" });
-    const row = r.rows[0];
-    if (!row.is_active) return res.status(403).json({ error: "Account disabled" });
-    if (!bcrypt.compareSync(password, row.password_hash)) return res.status(401).json({ error: "Invalid credentials" });
+      const r = await q("SELECT id, username, password_hash, role, is_active FROM users WHERE username=$1", [username]);
+      if (!r.rows.length) return res.status(401).json({ error: "Invalid credentials", correlation_id });
 
-    const u = { id: row.id, username: row.username, role: row.role };
-    const token = signToken(u);
+      const row = r.rows[0];
+      if (!row.is_active) return res.status(403).json({ error: "Account disabled", correlation_id });
 
-    await audit({
-      actor: u,
-      event_type: "AUTH_LOGIN",
-      entity_type: "user",
-      entity_id: row.id,
-      payload: { username: row.username, role: row.role },
-    });
+      if (!bcrypt.compareSync(password, row.password_hash)) {
+        return res.status(401).json({ error: "Invalid credentials", correlation_id });
+      }
 
-    res.json({ token, user: u });
+      const u = { id: row.id, username: row.username, role: row.role };
+      const token = signToken(u);
+
+      await audit({
+        actor: u,
+        event_type: "AUTH_LOGIN",
+        entity_type: "user",
+        entity_id: row.id,
+        payload: { username: row.username, role: row.role },
+      });
+
+      return res.json({ token, user: u, correlation_id });
+    } catch (e) {
+      const msg = e?.message || String(e) || "Internal Server Error";
+      console.error("[AUTH] /api/auth/login failed", { correlation_id, msg, stack: e?.stack });
+
+      let hint = null;
+      if (/DATABASE_URL/i.test(msg) || /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|no pg_hba|password authentication failed/i.test(msg)) {
+        hint = "Database connection failed. Check DATABASE_URL (Supabase) and SSL/PGSSL settings in your service.";
+      } else if (/secretOrPrivateKey/i.test(msg)) {
+        hint = "JWT secret missing. Set JWT_SECRET_EFFECTIVE (>=24 chars).";
+      } else if (/relation .*users.* does not exist/i.test(msg)) {
+        hint = "Schema not initialized. Ensure the server runs startServer() (npm start) and has DB privileges.";
+      }
+
+      return res.status(500).json({ error: msg, code: "SERVER_ERROR", hint, correlation_id });
+    }
   });
 
   app.get("/api/auth/me", auth, (req, res) => {
